@@ -1,0 +1,279 @@
+{
+  "metadata": {
+    "source": "fallback_index_html",
+    "competitionId": "30614",
+    "seasonId": "106",
+    "zona": "ZONA-NORTE",
+    "lastUpdated": "2026-10-25T18:41:00.000Z",
+    "generatedAt": "2026-10-25T18:41:00.000Z",
+    "championship": {
+      "name": "Campeonato Distrital Sub-12 (Futebol 9 - Zona Norte) • 2026/2027",
+      "season": "2026/2027",
+      "format": "Futebol 9",
+      "ageGroup": "Sub-12",
+      "zona": "ZONA-NORTE"
+    }
+  },
+  "teams": [
+    {
+      "name": "VALPACINHOS",
+      "position": 1,
+      "played": 2,
+      "won": 2,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 4,
+      "goalsAgainst": 2,
+      "goalDifference": 2,
+      "points": 6
+    },
+    {
+      "name": "AUDC SABROSA \"C\"",
+      "position": 2,
+      "played": 2,
+      "won": 2,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 10,
+      "goalsAgainst": 2,
+      "goalDifference": 8,
+      "points": 6
+    },
+    {
+      "name": "J. PEDRAS SALGADAS",
+      "position": 3,
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 1,
+      "goalsAgainst": 3,
+      "goalDifference": -2,
+      "points": 3
+    },
+    {
+      "name": "GD BOTICAS",
+      "position": 4,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "name": "ADE GERAÇÃO TALENTOS \"A\"",
+      "position": 5,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "name": "VIDAGO FC",
+      "position": 6,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "name": "AD FLAVIENSE",
+      "position": 7,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "name": "GD CHAVES",
+      "position": 8,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "name": "GD VILAR PERDIZES",
+      "position": 9,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    }
+  ],
+  "matches": [
+    {
+      "jornada": 1,
+      "homeTeam": "VALPACINHOS",
+      "homeGoals": 3,
+      "awayTeam": "J. PEDRAS SALGADAS",
+      "awayGoals": 1,
+      "date": "2026-10-18"
+    },
+    {
+      "jornada": 2,
+      "homeTeam": "AUDC SABROSA \"C\"",
+      "homeGoals": 9,
+      "awayTeam": "VALPACINHOS",
+      "awayGoals": 1,
+      "date": "2026-10-25"
+    }
+  ],
+  "topScorers": [
+    {
+      "name": "Pepe",
+      "team": "VALPACINHOS",
+      "goals": 1
+    },
+    {
+      "name": "Luis",
+      "team": "VALPACINHOS",
+      "goals": 1
+    },
+    {
+      "name": "Fábio",
+      "team": "VALPACINHOS",
+      "goals": 1
+    }
+  ],
+  "standings": [
+    {
+      "team": "VALPACINHOS",
+      "position": 1,
+      "played": 2,
+      "won": 2,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 4,
+      "goalsAgainst": 2,
+      "goalDifference": 2,
+      "points": 6
+    },
+    {
+      "team": "AUDC SABROSA \"C\"",
+      "position": 2,
+      "played": 2,
+      "won": 2,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 10,
+      "goalsAgainst": 2,
+      "goalDifference": 8,
+      "points": 6
+    },
+    {
+      "team": "J. PEDRAS SALGADAS",
+      "position": 3,
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 1,
+      "goalsAgainst": 3,
+      "goalDifference": -2,
+      "points": 3
+    },
+    {
+      "team": "GD BOTICAS",
+      "position": 4,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "team": "ADE GERAÇÃO TALENTOS \"A\"",
+      "position": 5,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "team": "VIDAGO FC",
+      "position": 6,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "team": "AD FLAVIENSE",
+      "position": 7,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "team": "GD CHAVES",
+      "position": 8,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    },
+    {
+      "team": "GD VILAR PERDIZES",
+      "position": 9,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0
+    }
+  ],
+  "zonaInfo": {
+    "totalTeams": 9,
+    "zonaName": "ZONA-NORTE",
+    "season": "2026/2027",
+    "format": "Futebol 9",
+    "ageGroup": "Sub-12"
+  }
+}

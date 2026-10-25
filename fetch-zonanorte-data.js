@@ -15,6 +15,8 @@ class ZONA_NORTE_Data_Fetcher {
     async fetchFromWebsite() {
         try {
             // Try with different headers and options to bypass potential blocking
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 15000);
             const response = await fetch(this.baseUrl, {
                 method: 'GET',
                 headers: {
@@ -31,28 +33,71 @@ class ZONA_NORTE_Data_Fetcher {
                     'Cache-Control': 'max-age=0',
                 },
                 redirect: 'follow',
-                timeout: 10000,
+                signal: controller.signal,
             });
+
+            clearTimeout(timer);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const html = await response.text();
-            return this.parseHTMLForZONA(html);
+            return await this.parseHTMLForZONA(html);
 
         } catch (error) {
             console.warn('Failed to fetch from website:', error.message);
-            return null;
+            return await this.fetchFromBrowser();
         }
     }
 
-    parseHTMLForZONA(html) {
-        // This function would parse the HTML to extract ZONA-NORTE specific data
-        // Since we can't access the website, we'll implement a fallback parsing
-        // that would be called when we have access
+    async fetchFromBrowser() {
+        let chromium;
+        try {
+            ({ chromium } = require('playwright'));
+        } catch (error) {
+            console.warn('Browser fallback unavailable. Install it with: npm install');
+            return null;
+        }
+        let browser;
+        try {
+            browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ locale: 'pt-PT', userAgent: 'Mozilla/5.0 Chrome/131 Safari/537.36' });
+            await page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            const html = await page.content();
+            const data = await this.parseHTMLForZONA(html, async url => {
+                await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                return await page.content();
+            });
+            data.source = 'fpf_browser';
+            return data;
+        } catch (error) {
+            console.warn('Browser fetch failed:', error.message);
+            return null;
+        } finally {
+            if (browser) await browser.close();
+        }
+    }
 
-        // For now, return structured data that matches what we already have
+    async parseHTMLForZONA(html, requestText = async url => (await fetch(url)).text()) {
+        // The FPF page contains one block per series.  Keep only htmlSerieId_100601,
+        // which is the ZONA-NORTE block for this competition.
+        const zoneMatch = html.match(/<div[^>]+id=["']htmlSerieId_100601["'][\s\S]*?(?=<div[^>]+id=["']htmlSerieId_|<\/body>)/i);
+        if (!zoneMatch) throw new Error('ZONA-NORTE series was not found in FPF page');
+        const zoneHtml = zoneMatch[0];
+        const fixtureIds = [...zoneHtml.matchAll(/GetClassificationAndMatchesByFixture\?fixtureId=(\d+)/gi)].map(m => m[1]);
+        let teams = [];
+        const matches = [];
+        for (let i = 0; i < fixtureIds.length; i++) {
+            try {
+                const fixtureHtml = await requestText(`https://resultados.fpf.pt/Competition/GetClassificationAndMatchesByFixture?fixtureId=${fixtureIds[i]}`);
+                if (!teams.length) teams = this.parseClassification(fixtureHtml);
+                this.parseMatches(fixtureHtml).forEach(match => { match.jornada = i + 1; matches.push(match); });
+            } catch (error) {
+                console.warn(`Could not load fixture ${fixtureIds[i]}:`, error.message);
+            }
+        }
+        if (!teams.length) throw new Error('No classification data was returned for ZONA-NORTE');
         return {
             source: 'fpf_website',
             competitionId: this.competitionId,
@@ -60,26 +105,9 @@ class ZONA_NORTE_Data_Fetcher {
             zona: this.zona,
             lastUpdated: new Date().toISOString(),
             data: {
-                teams: [
-                    { name: "VALPACINHOS", position: 1, played: 2, won: 2, drawn: 0, lost: 0, goalsFor: 4, goalsAgainst: 2, goalDifference: 2, points: 6 },
-                    { name: "AUDC SABROSA \"C\"", position: 2, played: 2, won: 2, drawn: 0, lost: 0, goalsFor: 10, goalsAgainst: 2, goalDifference: 8, points: 6 },
-                    { name: "J. PEDRAS SALGADAS", position: 3, played: 1, won: 1, drawn: 0, lost: 0, goalsFor: 1, goalsAgainst: 3, goalDifference: -2, points: 3 },
-                    { name: "GD BOTICAS", position: 4, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
-                    { name: "ADE GERAÇÃO TALENTOS \"A\"", position: 5, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
-                    { name: "VIDAGO FC", position: 6, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
-                    { name: "AD FLAVIENSE", position: 7, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
-                    { name: "GD CHAVES", position: 8, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
-                    { name: "GD VILAR PERDIZES", position: 9, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 }
-                ],
-                matches: [
-                    { jornada: 1, home: "VALPACINHOS", homeGoals: 3, away: "J. PEDRAS SALGADAS", awayGoals: 1, date: "2026-10-18" },
-                    { jornada: 2, home: "AUDC SABROSA \"C\"", homeGoals: 9, away: "VALPACINHOS", awayGoals: 1, date: "2026-10-25" }
-                ],
-                topScorers: [
-                    { name: "Pepe", team: "VALPACINHOS", goals: 1 },
-                    { name: "Luis", team: "VALPACINHOS", goals: 1 },
-                    { name: "Fábio", team: "VALPACINHOS", goals: 1 }
-                ],
+                teams,
+                matches,
+                topScorers: [],
                 championship: {
                     name: "Campeonato Distrital Sub-12 (Futebol 9 - Zona Norte) • 2026/2027",
                     season: "2026/2027",
@@ -87,8 +115,47 @@ class ZONA_NORTE_Data_Fetcher {
                     ageGroup: "Sub-12",
                     zona: "ZONA-NORTE"
                 }
-            }
+            },
+            fixtureIds
         };
+    }
+
+    stripTags(value) { return value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&quot;/gi, '"').replace(/&#39;/g, "'").replace(/&amp;/gi, '&').replace(/\s+/g, ' ').trim(); }
+
+    parseClassification(html) {
+        const teams = [];
+        const rows = html.match(/<div[^>]+class=["'][^"']*game classification[^"']*["'][^>]*>[\s\S]*?<\/div>\s*(?=<div[^>]+class=["'][^"']*game classification|<\/div>)/gi) || [];
+        for (const row of rows) {
+            const cells = [...row.matchAll(/<div[^>]*>([\s\S]*?)<\/div>/gi)].map(m => this.stripTags(m[1])).filter(Boolean);
+            if (cells.length < 9 || !/^\d+$/.test(cells[0])) continue;
+            const n = cells.slice(0, 9).map(Number);
+            teams.push({ name: cells[1], position: n[0], played: n[2], won: n[3], drawn: n[4], lost: n[5], goalsFor: n[6], goalsAgainst: n[7], goalDifference: n[6] - n[7], points: n[8] });
+        }
+        if (!teams.length) throw new Error('No classification rows found for ZONA-NORTE');
+        return teams;
+    }
+
+    parseMatches(html) {
+        const matches = [];
+        const rows = html.match(/<a[^>]+class=["'][^"']*game-link[^"']*["'][\s\S]*?<\/a>/gi) || [];
+        for (const row of rows) {
+            const home = this.stripTags((row.match(/class=["'][^"']*home-team[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) || [])[1] || '');
+            const away = this.stripTags((row.match(/class=["'][^"']*away-team[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) || [])[1] || '');
+            const score = this.stripTags((row.match(/class=["'][^"']*score[^"']*["'][^>]*>[\s\S]*?<span[^>]*>\s*([^<]+?)\s*<\/span>/i) || [])[1] || '');
+            const scoreMatch = score.match(/(\d+)\s*[-–]\s*(\d+)/);
+            if (!home || !away || !scoreMatch) continue; // scheduled matches have no result yet
+            const dateText = this.stripTags((row.match(/class=["'][^"']*game-schedule[^"']*["'][^>]*>([\s\S]*?)<\/span>/i) || [])[1] || '');
+            matches.push({ jornada: null, home, homeGoals: Number(scoreMatch[1]), away, awayGoals: Number(scoreMatch[2]), date: this.parseFpfDate(dateText) });
+        }
+        return matches;
+    }
+
+    parseFpfDate(text) {
+        const months = { jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5, jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11 };
+        const match = text.toLowerCase().match(/(\d{1,2})\s+([a-zç]+)/);
+        if (!match || months[match[2]] === undefined) return null;
+        const year = months[match[2]] >= 7 ? 2026 : 2027;
+        return new Date(Date.UTC(year, months[match[2]], Number(match[1]))).toISOString().slice(0, 10);
     }
 
     async getData() {
@@ -110,6 +177,7 @@ class ZONA_NORTE_Data_Fetcher {
     }
 
     getCachedData() {
+        if (typeof localStorage === 'undefined') return null;
         try {
             const cached = localStorage.getItem(this.cacheKey);
             if (cached) {
@@ -130,6 +198,7 @@ class ZONA_NORTE_Data_Fetcher {
     }
 
     setCachedData(data) {
+        if (typeof localStorage === 'undefined') return;
         try {
             const cacheEntry = {
                 data: data,
@@ -199,30 +268,30 @@ class ZONA_NORTE_Data_Fetcher {
     formatForIndex(data) {
         const teams = data.data.teams.map(team => ({
             name: team.name,
-            position: team.position || this.calculatePosition(team),
-            played: team.played || team.j || 0,
-            won: team.won || team.v || 0,
-            drawn: team.drawn || team.e || 0,
-            lost: team.lost || team.d || 0,
-            goalsFor: team.goalsFor || team.gm || 0,
-            goalsAgainst: team.goalsAgainst || team.gs || 0,
-            goalDifference: team.goalDifference || team.dg || 0,
-            points: team.points || team.p || 0
+            position: team.position ?? this.calculatePosition(team),
+            played: team.played ?? team.j ?? 0,
+            won: team.won ?? team.v ?? 0,
+            drawn: team.drawn ?? team.e ?? 0,
+            lost: team.lost ?? team.d ?? 0,
+            goalsFor: team.goalsFor ?? team.gm ?? 0,
+            goalsAgainst: team.goalsAgainst ?? team.gs ?? 0,
+            goalDifference: team.goalDifference ?? team.dg ?? 0,
+            points: team.points ?? team.p ?? 0
         }));
 
         const matches = data.data.matches.map(match => ({
             jornada: match.jornada,
             homeTeam: match.home || match.casa,
-            homeGoals: match.homeGoals || match.goloCasa,
+            homeGoals: match.homeGoals ?? match.goloCasa,
             awayTeam: match.away || match.fora,
-            awayGoals: match.awayGoals || match.goloFora,
+            awayGoals: match.awayGoals ?? match.goloFora,
             date: match.date || new Date().toLocaleDateString('pt-PT')
         }));
 
         const topScorers = data.data.topScorers.map(scorer => ({
             name: scorer.name || scorer.nome,
             team: scorer.team || scorer.equipa,
-            goals: scorer.goals || scorer.golos
+            goals: scorer.goals ?? scorer.golos
         }));
 
         return {
@@ -334,7 +403,12 @@ class ZONA_NORTE_Data_Fetcher {
         const jsonStr = JSON.stringify(data, null, 2);
 
         // Save to localStorage
-        localStorage.setItem('zonanorte_index_data', jsonStr);
+        if (typeof localStorage !== 'undefined') localStorage.setItem('zonanorte_index_data', jsonStr);
+
+        // Node runs the scheduled updater and has no Blob or object URLs.
+        if (typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+            return { filename: 'zonanorte-championship-index.json', dataSize: jsonStr.length, timestamp: new Date().toISOString(), data };
+        }
 
         // Create download link
         const blob = new Blob([jsonStr], { type: 'application/json' });

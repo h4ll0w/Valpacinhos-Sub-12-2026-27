@@ -13,7 +13,7 @@ The system provides:
 
 ## Current Status
 
-The system is currently using **fallback data** from the `index.html` file because the FPF website (https://resultados.fpf.pt/Competition/Details?competitionId=30614&seasonId=106) returns a 403 Forbidden error when accessed automatically.
+The fetcher now reads the FPF competition page and keeps only the block identified as `ZONA-NORTE` (`htmlSerieId_100601`). It follows that block's fixture links (`GetClassificationAndMatchesByFixture`) to collect the classification and all played matches. If the FPF portal is temporarily unavailable, the previous JSON data is retained through the fallback flow.
 
 ### Championship Information
 - **Name**: Campeonato Distrital Sub-12 (Futebol 9 - Zona Norte) • 2026/2027
@@ -22,7 +22,7 @@ The system is currently using **fallback data** from the `index.html` file becau
 - **Age Group**: Sub-12
 - **Zone**: ZONA-NORTE
 - **Teams**: 9 teams
-- **Current Season Progress**: 2 matches completed (Jornada 1 and 2)
+- **Current Season Progress**: determined from the played matches returned by the FPF fixture endpoints
 
 ## Files
 
@@ -46,9 +46,9 @@ The system is currently using **fallback data** from the `index.html` file becau
    - Validates data integrity
 
 4. **`index.html`**
-   - Original championship display page
-   - Shows team standings and top scorers
-   - Updated via JavaScript with current data
+   - Responsive championship display page
+   - Loads `zonanorte-championship-index.json` when served over HTTP
+   - Shows results, standings, and locally entered Valpacinhos scorers
 
 5. **`README-zonanorte.md`**
    - This documentation file
@@ -65,6 +65,14 @@ The system is currently using **fallback data** from the `index.html` file becau
 ## Usage
 
 ### Quick Start
+
+Install the optional browser synchronizer once:
+```bash
+npm install
+npx playwright install chromium
+```
+
+The updater first tries a direct request. If FPF returns `403`, it automatically retries through a headless Chromium browser, which handles the portal's browser checks and session cookies.
 
 1. **View Current Championship Status**
    ```bash
@@ -216,6 +224,16 @@ When the FPF website becomes accessible, you can:
    ```bash
    node update-zonanorte-index.js update
    ```
+
+The update command fetches the FPF page, extracts only the Zona Norte series, follows its fixture endpoints, and writes both `data/zonanorte-championship-index.json` and the root `zonanorte-championship-index.json` used by the web page.
+
+It also embeds the latest JSON in `index.html`. This means the page can be opened directly from the file system after an update; serving the folder over HTTP remains useful for live JSON reloads.
+
+### Plantel e marcadores
+
+The page includes a manager area for adding and removing players from the Valpacinhos squad. Only authenticated managers can select a squad player when recording goals. The initial local password is `Valpacinhos2026!`; change `initialManagerPassword` in `index.html` before distributing the page.
+
+This is a local static-page restriction. A real permission boundary requires a server login and a database/API; anyone who can edit the HTML or browser storage can bypass this local lock.
 
 2. **Check website manually**:
    https://resultados.fpf.pt/Competition/Details?competitionId=30614&seasonId=106

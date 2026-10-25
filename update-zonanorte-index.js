@@ -47,8 +47,8 @@ class ZONA_NORTE_Index_Updater {
 
     async updateIndex() {
         try {
-            this.log('Starting ZONA-NORTE index update...');
             await this.ensureDirectories();
+            this.log('Starting ZONA-NORTE index update...');
             await this.backupCurrentIndex();
 
             // Use the fetcher to get data
@@ -62,34 +62,37 @@ class ZONA_NORTE_Index_Updater {
             const dataDir = path.join(process.cwd(), 'data');
             const indexFile = path.join(dataDir, 'zonanorte-championship-index.json');
 
-            // Convert the download result to the expected format
-            const downloadUrl = result.downloadUrl;
-            const filename = result.filename;
+            // The fetcher returns the structured index directly. Avoid Blob URLs,
+            // which are only available in a browser and cannot be fetched by Node.
+            fs.writeFileSync(indexFile, JSON.stringify(result, null, 2));
+            this.log(`Index updated successfully - ${JSON.stringify(result).length} bytes written`);
+            this.log(`Last updated: ${result.metadata.lastUpdated}`);
 
-            // Download the actual data from the URL or use cached data
-            const response = await fetch(downloadUrl);
-            if (response.ok) {
-                const data = await response.text();
-                const parsedData = JSON.parse(data);
+            // Also update the root index file used by the static page.
+            const rootIndexFile = path.join(process.cwd(), 'zonanorte-championship-index.json');
+            fs.writeFileSync(rootIndexFile, JSON.stringify(result, null, 2));
+            this.embedDataInStaticPage(result);
 
-                // Update the index file
-                fs.writeFileSync(indexFile, JSON.stringify(parsedData, null, 2));
-                this.log(`Index updated successfully - ${result.dataSize} bytes written`);
-                this.log(`Last updated: ${parsedData.metadata.lastUpdated}`);
-
-                // Also update the root index file for backward compatibility
-                const rootIndexFile = path.join(process.cwd(), 'zonanorte-championship-index.json');
-                fs.writeFileSync(rootIndexFile, JSON.stringify(parsedData, null, 2));
-
-                return { success: true, dataSize: result.dataSize, lastUpdated: parsedData.metadata.lastUpdated };
-            } else {
-                throw new Error(`Failed to download data: ${response.status}`);
-            }
+            return { success: true, dataSize: JSON.stringify(result).length, lastUpdated: result.metadata.lastUpdated };
 
         } catch (error) {
             this.log(`Error updating index: ${error.message}`);
             throw error;
         }
+    }
+
+    embedDataInStaticPage(data) {
+        const pageFile = path.join(process.cwd(), 'index.html');
+        if (!fs.existsSync(pageFile)) return;
+        const source = fs.readFileSync(pageFile, 'utf8');
+        const marker = /(window\.__ZONANORTE_DATA__\s*=\s*\/\* EMBEDDED_DATA_START \*\/)[\s\S]*?(\/\* EMBEDDED_DATA_END \*\/)/;
+        if (!marker.test(source)) {
+            this.log('Static page data markers not found; JSON file was still updated');
+            return;
+        }
+        const embedded = JSON.stringify(data).replace(/<\//g, '<\\/');
+        fs.writeFileSync(pageFile, source.replace(marker, `$1 ${embedded} $2`));
+        this.log('Static page embedded data updated');
     }
 
     async validateIndex() {
@@ -132,6 +135,19 @@ class ZONA_NORTE_Index_Updater {
                 this.log(`Warning: Some teams in standings not found in teams array: ${missingTeams.join(', ')}`);
             }
 
+            const invalidMatches = data.matches.filter(match =>
+                !Number.isFinite(match.homeGoals) || !Number.isFinite(match.awayGoals));
+            if (invalidMatches.length > 0) {
+                throw new Error(`Invalid score values in ${invalidMatches.length} match(es)`);
+            }
+
+            const invalidStandings = data.standings.filter(team =>
+                !Number.isFinite(team.played) || !Number.isFinite(team.goalsFor) ||
+                !Number.isFinite(team.goalsAgainst) || !Number.isFinite(team.points));
+            if (invalidStandings.length > 0) {
+                throw new Error(`Invalid numeric values in ${invalidStandings.length} standing row(s)`);
+            }
+
             this.log('Index validation completed successfully');
             return { valid: true, issues: [] };
 
@@ -145,14 +161,8 @@ class ZONA_NORTE_Index_Updater {
         try {
             this.log('Checking for updates...');
 
-            // Get cached data timestamp
-            const cachedData = localStorage.getItem('zonanorte_championship_data');
-            let cachedTimestamp = null;
-
-            if (cachedData) {
-                const parsed = JSON.parse(cachedData);
-                cachedTimestamp = parsed.timestamp;
-            }
+            // The scheduled updater runs in Node, where browser localStorage is
+            // unavailable. The index file itself is the persistent cache.
 
             // Try to update
             const result = await this.updateIndex();

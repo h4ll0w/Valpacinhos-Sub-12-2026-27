@@ -334,17 +334,82 @@
     "ageGroup": "Sub-12"
   }
 } /* EMBEDDED_DATA_END */;
+    let currentUser = null;
+    let managerUnlocked = false;
+    let roster = [];
+    let scorerEntries = [];
     let teams=["VALPACINHOS","J. PEDRAS SALGADAS",'AUDC SABROSA "C"',"GD BOTICAS",'ADE GERAÇÃO TALENTOS "A"',"VIDAGO FC","AD FLAVIENSE","GD CHAVES","GD VILAR PERDIZES"];
     let matches=[
       {round:1,home:"VALPACINHOS",hg:3,away:"J. PEDRAS SALGADAS",ag:1,date:"2026-10-18"},
       {round:2,home:'AUDC SABROSA "C"',hg:9,away:"VALPACINHOS",ag:1,date:"2026-10-25"}
     ];
-    let managerUnlocked=false, currentUser=null, roster=[], scorerEntries=[];
-    async function loadRoster(){if(!supabaseClient)return;const {data,error}=await supabaseClient.from("players").select("*").eq("active",true).order("shirt_number");if(error){console.error(error);return}roster=data||[]}
-    async function loadGoalEntries(){if(!supabaseClient)return;const {data,error}=await supabaseClient.from("goal_entries").select("id,player_id,match_key,goals,created_at,players(name,shirt_number)").order("created_at",{ascending:false});if(error){console.error(error);return}scorerEntries=(data||[]).map(x=>({id:x.id,playerId:x.player_id,name:x.players?.name||"Jogador",goals:x.goals,match:Number(x.match_key)}))}
-    async function renderRoster(){const list=document.querySelector("#roster-list");list.innerHTML=roster.length?roster.map(p=>`<div class="roster-item"><span><strong>#${p.shirt_number}</strong> ${escapeHtml(p.name)}${p.position?` · ${escapeHtml(p.position)}`:""}</span><button class="remove-player" type="button" data-player="${p.id}">Remover</button></div>`).join(""):"<p class=\"empty\">Ainda não há jogadores no plantel.</p>";list.querySelectorAll(".remove-player").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("Remover este jogador do plantel?"))return;const {error}=await supabaseClient.from("players").update({active:false}).eq("id",b.dataset.player);if(error){alert(error.message);return}await loadRoster();renderRoster();renderPlayerOptions()}))}
-    function renderPlayerOptions(){const select=document.querySelector("#player");select.innerHTML=roster.length?`<option value="">Selecionar jogador</option>`+roster.map(p=>`<option value="${p.id}">#${p.shirt_number} · ${escapeHtml(p.name)}</option>`).join(""):"<option value=\"\">Adicionar jogadores no plantel</option>";select.disabled=!managerUnlocked||!roster.length;document.querySelector("#scorer-submit").disabled=!managerUnlocked||!roster.length}
-    function renderManagerScorers(){const c=document.querySelector("#scorer-history");if(!c)return;c.innerHTML=scorerEntries.length?scorerEntries.map((s,i)=>`<div class="history-item"><span>${escapeHtml(s.name)} · ${s.goals} ${s.goals===1?"golo":"golos"}</span><span class="history-actions"><button type="button" data-edit-scorer="${i}">Editar</button><button type="button" data-delete-scorer="${i}">Apagar</button></span></div>`).join(""):"<p class=\"empty\">Ainda não existem registos de golos.</p>";c.querySelectorAll("[data-edit-scorer]").forEach(b=>b.addEventListener("click",async()=>{const entry=scorerEntries[Number(b.dataset.editScorer)],options=roster.map((p,n)=>`${n+1}. #${p.shirt_number} · ${p.name}`).join("\n"),choice=Number(prompt(`Selecionar jogador:\n${options}`,"1")),goals=Number(prompt("Nova quantidade de golos:",entry.goals));if(!Number.isInteger(choice)||choice<1||choice>roster.length||!Number.isInteger(goals)||goals<1||goals>20)return;const {error}=await supabaseClient.from("goal_entries").update({player_id:roster[choice-1].id,goals,updated_at:new Date().toISOString()}).eq("id",entry.id);if(error){alert(error.message);return}await loadGoalEntries();render()}));c.querySelectorAll("[data-delete-scorer]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("Apagar este registo de golos?"))return;const {error}=await supabaseClient.from("goal_entries").delete().eq("id",scorerEntries[Number(b.dataset.deleteScorer)].id);if(error){alert(error.message);return}await loadGoalEntries();render()}))}    function formatDate(value){if(!value)return "Data a confirmar";return new Intl.DateTimeFormat("pt-PT",{day:"numeric",month:"long",year:"numeric"}).format(new Date(value+"T12:00:00"))}
+    async function loadRoster() {
+      const { data, error } = await supabaseClient
+        .from("players")
+        .select("*")
+        .eq("active", true)
+        .order("shirt_number");
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      roster = data || [];
+    }
+    async function loadGoalEntries() {
+      const { data, error } = await supabaseClient
+        .from("goal_entries")
+        .select(`
+          id,
+          player_id,
+          match_key,
+          goals,
+          created_at,
+          players (
+            name,
+            shirt_number
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      scorerEntries = data || [];
+    }
+    function renderRoster() {
+      const list = document.querySelector("#roster-list");
+      list.innerHTML = roster.length
+        ? roster.map(p => `<div class="roster-item"><span><strong>#${p.shirt_number}</strong> ${escapeHtml(p.name)}${p.position ? ` · ${escapeHtml(p.position)}` : ""}</span><button class="remove-player" type="button" data-player="${p.id}">Remover</button></div>`).join("")
+        : `<p class="empty">Ainda não há jogadores no plantel.</p>`;
+      list.querySelectorAll(".remove-player").forEach(b => b.addEventListener("click", async () => {
+        if (!confirm("Remover este jogador do plantel?")) return;
+        const { error } = await supabaseClient.from("players").update({ active: false }).eq("id", b.dataset.player);
+        if (error) { alert(error.message); return; }
+        await loadRoster(); renderRoster(); renderPlayerOptions();
+      }));
+    }
+    function renderPlayerOptions() {
+      const select = document.querySelector("#player");
+
+      select.innerHTML = roster.length
+        ? `<option value="">Selecionar jogador</option>` +
+          roster
+            .map(player =>
+              `<option value="${player.id}">
+                #${player.shirt_number} · ${escapeHtml(player.name)}
+              </option>`
+            )
+            .join("")
+        : `<option value="">Não existem jogadores no plantel</option>`;
+
+      select.disabled = !managerUnlocked || !roster.length;
+      document.querySelector("#scorer-submit").disabled = !managerUnlocked || !roster.length;
+    }
+    function renderManagerScorers(){const c=document.querySelector("#scorer-history");if(!c)return;c.innerHTML=scorerEntries.length?scorerEntries.map((s,i)=>`<div class="history-item"><span>${escapeHtml(s.name)} · ${s.goals} ${s.goals===1?"golo":"golos"}</span><span class="history-actions"><button type="button" data-edit-scorer="${i}">Editar</button><button type="button" data-delete-scorer="${i}">Apagar</button></span></div>`).join(""):"<p class=\"empty\">Ainda não existem registos de golos.</p>";c.querySelectorAll("[data-edit-scorer]").forEach(b=>b.addEventListener("click",async()=>{const entry=scorerEntries[Number(b.dataset.editScorer)],options=roster.map((p,n)=>`${n+1}. #${p.shirt_number} · ${p.name}`).join("\n"),choice=Number(prompt(`Selecionar jogador:\n${options}`,"1")),newGoals=Number(prompt("Nova quantidade de golos:",entry.goals));if(!Number.isInteger(choice)||choice<1||choice>roster.length||!Number.isInteger(newGoals)||newGoals<1||newGoals>20)return;const newPlayerId=roster[choice-1].id;const entryId=entry.id;await supabaseClient.from("goal_entries").update({player_id:newPlayerId,goals:newGoals,updated_at:new Date().toISOString()}).eq("id",entryId);await loadGoalEntries();render();renderManagerScorers()}));c.querySelectorAll("[data-delete-scorer]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("Apagar este registo de golos?"))return;const entryId=scorerEntries[Number(b.dataset.deleteScorer)].id;const {error}=await supabaseClient.from("goal_entries").delete().eq("id",entryId);if(error){alert(error.message);return}await loadGoalEntries();render();renderManagerScorers()}))}    function formatDate(value){if(!value)return "Data a confirmar";return new Intl.DateTimeFormat("pt-PT",{day:"numeric",month:"long",year:"numeric"}).format(new Date(value+"T12:00:00"))}
     function render(){
       const stats=Object.fromEntries(teams.map(name=>[name,{played:0,won:0,drawn:0,lost:0,gf:0,ga:0,points:0}]));
       for(const m of matches){const h=stats[m.home],a=stats[m.away];if(!h||!a)continue;h.played++;a.played++;h.gf+=m.hg;h.ga+=m.ag;a.gf+=m.ag;a.ga+=m.hg;if(m.hg>m.ag){h.won++;h.points+=3;a.lost++}else if(m.hg<m.ag){a.won++;a.points+=3;h.lost++}else{h.drawn++;a.drawn++;h.points++;a.points++}}
@@ -357,7 +422,35 @@
       const select=document.querySelector("#match"),selected=select.value;select.innerHTML=matches.filter(m=>m.home.toLowerCase().includes("valpacinhos")||m.away.toLowerCase().includes("valpacinhos")).map((m,i)=>`<option value="${matches.indexOf(m)}">Jornada ${m.round||"—"} · ${m.home} ${m.hg}–${m.ag} ${m.away}</option>`).join("");if(selected)select.value=selected;
     }
     function escapeHtml(value){return value.replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]))}
-    document.querySelector("#scorer-form").addEventListener("submit",async event=>{event.preventDefault();if(!managerUnlocked||!currentUser)return;const player=roster.find(p=>p.id===document.querySelector("#player").value),goals=Number(document.querySelector("#goals").value),match=Number(document.querySelector("#match").value);if(!player||!Number.isInteger(goals)||goals<1||goals>20||!Number.isInteger(match)||!matches[match])return;const {error}=await supabaseClient.from("goal_entries").insert({player_id:player.id,match_key:String(match),goals,created_by:currentUser.id});if(error){alert(error.message);return}document.querySelector("#player").value="";document.querySelector("#goals").value="1";document.querySelector("#status").textContent=`Registados ${goals} ${goals===1?"golo":"golos"} para ${player.name}.`;await loadGoalEntries();render()});
+    document.querySelector("#scorer-form").addEventListener("submit", async event => {
+      event.preventDefault();
+
+      if (!managerUnlocked || !currentUser) return;
+
+      const playerId = document.querySelector("#player").value;
+      const matchIndex = Number(document.querySelector("#match").value);
+      const goals = Number(document.querySelector("#goals").value);
+
+      if (!playerId || !Number.isInteger(goals) || goals < 1 || goals > 20 || !Number.isInteger(matchIndex)) return;
+
+      const { error } = await supabaseClient
+        .from("goal_entries")
+        .insert({
+          player_id: playerId,
+          match_key: String(matchIndex),
+          goals,
+          created_by: currentUser.id
+        });
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      await loadGoalEntries();
+      render();
+      renderManagerScorers();
+    });
     document.querySelector("#manager-toggle").addEventListener("click",()=>{const panel=document.querySelector("#manager-panel");panel.hidden=!panel.hidden;if(!panel.hidden)panel.scrollIntoView({behavior:"smooth",block:"start"})});
     document
     .querySelector("#login-form")
@@ -399,7 +492,47 @@
     renderManagerScorers();
   });
     document.querySelector("#manager-logout").addEventListener("click",async()=>{await supabaseClient.auth.signOut();managerUnlocked=false;currentUser=null;document.querySelector("#manager-tools").hidden=true;document.querySelector("#manager-login").hidden=false;renderPlayerOptions()});
-    document.querySelector("#roster-form").addEventListener("submit",async event=>{event.preventDefault();if(!managerUnlocked)return;const name=document.querySelector("#roster-name").value.trim(),shirt_number=Number(document.querySelector("#roster-number").value),position=document.querySelector("#roster-position").value.trim();if(!name||!Number.isInteger(shirt_number)||shirt_number<1||shirt_number>99)return;const {error}=await supabaseClient.from("players").insert({name,shirt_number,position,active:true});if(error){alert(error.message);return}event.target.reset();await loadRoster();renderRoster();renderPlayerOptions()});    render();
+    document
+      .querySelector("#roster-form")
+      .addEventListener("submit", async event => {
+        event.preventDefault();
+
+        if (!managerUnlocked || !currentUser) return;
+
+        const name = document
+          .querySelector("#roster-name")
+          .value
+          .trim();
+
+        const shirtNumber = Number(
+          document.querySelector("#roster-number").value
+        );
+
+        const position = document
+          .querySelector("#roster-position")
+          .value
+          .trim();
+
+        const { error } = await supabaseClient
+          .from("players")
+          .insert({
+            name,
+            shirt_number: shirtNumber,
+            position,
+            active: true
+          });
+
+        if (error) {
+          alert(error.message);
+          return;
+        }
+
+        event.target.reset();
+
+        await loadRoster();
+        renderRoster();
+        renderPlayerOptions();
+      });    render();
     renderPlayerOptions();
     loadFpfData();
   </script>

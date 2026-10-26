@@ -1,0 +1,8 @@
+﻿2026-10-26T21:13:54.0015749Z ##[group]Run if git diff --quiet -- index.html zonanorte-championship-index.json; then
+2026-10-26T21:13:54.0016415Z [36;1mif git diff --quiet -- index.html zonanorte-championship-index.json; then[0m
+2026-10-26T21:13:54.0017075Z [36;1m  echo "changed=false" >> "$GITHUB_OUTPUT"[0m
+2026-10-26T21:13:54.0017375Z [36;1melse[0m
+2026-10-26T21:13:54.0017614Z [36;1m  echo "changed=true" >> "$GITHUB_OUTPUT"[0m
+2026-10-26T21:13:54.0017901Z [36;1mfi[0m
+2026-10-26T21:13:54.0086862Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-26T21:13:54.0087269Z ##[endgroup]

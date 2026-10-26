@@ -1,0 +1,30 @@
+﻿2026-10-26T21:12:34.4671745Z ##[group]Run actions/setup-node@v4
+2026-10-26T21:12:34.4673109Z with:
+2026-10-26T21:12:34.4673999Z   node-version: 20
+2026-10-26T21:12:34.4674947Z   cache: npm
+2026-10-26T21:12:34.4676106Z   always-auth: false
+2026-10-26T21:12:34.4677138Z   check-latest: false
+2026-10-26T21:12:34.4687242Z   token: ***
+2026-10-26T21:12:34.4688188Z ##[endgroup]
+2026-10-26T21:12:34.6528552Z Attempting to download 20...
+2026-10-26T21:12:34.6649114Z (node:2280) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-26T21:12:34.6651407Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-26T21:12:35.5516202Z Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+2026-10-26T21:12:35.9618891Z Extracting ...
+2026-10-26T21:12:35.9743262Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/362cbbc2-6672-411e-a442-8e712085ad59 -f /home/runner/work/_temp/93d5c266-b805-4191-b8b0-fc5e69933fcb
+2026-10-26T21:12:36.9931792Z Adding to the cache ...
+2026-10-26T21:12:38.8511970Z ##[group]Environment details
+2026-10-26T21:12:39.2506255Z node: v20.20.2
+2026-10-26T21:12:39.2506941Z npm: 10.8.2
+2026-10-26T21:12:39.2507226Z yarn: 1.22.22
+2026-10-26T21:12:39.2507845Z ##[endgroup]
+2026-10-26T21:12:39.2550984Z [command]/opt/hostedtoolcache/node/20.20.2/x64/bin/npm config get cache
+2026-10-26T21:12:39.3655981Z /home/runner/.npm
+2026-10-26T21:12:39.6170864Z Cache hit for: node-cache-Linux-x64-npm-200aa74ed6c769b148e50bce9d8e30ac1a3ea227642ad70ca15259ddcd32a826
+2026-10-26T21:12:39.6302001Z (node:2280) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-26T21:12:40.9193393Z Received 0 of 4082524 (0.0%), 0.0 MBs/sec
+2026-10-26T21:12:41.1243599Z Received 4082524 of 4082524 (100.0%), 3.2 MBs/sec
+2026-10-26T21:12:41.1244529Z Cache Size: ~4 MB (4082524 B)
+2026-10-26T21:12:41.1279244Z [command]/usr/bin/tar -xf /home/runner/work/_temp/2060a7c0-1435-40d0-865c-4856b6258e9e/cache.tzst -P -C /home/runner/work/Valpacinhos-Sub-12-2026-27/Valpacinhos-Sub-12-2026-27 --use-compress-program unzstd
+2026-10-26T21:12:41.1414032Z Cache restored successfully
+2026-10-26T21:12:41.1422286Z Cache restored from key: node-cache-Linux-x64-npm-200aa74ed6c769b148e50bce9d8e30ac1a3ea227642ad70ca15259ddcd32a826

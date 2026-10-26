@@ -1,0 +1,7 @@
+﻿2026-10-26T21:13:53.9508893Z ##[group]Run node update-zonanorte-index.js validate
+2026-10-26T21:13:53.9509349Z [36;1mnode update-zonanorte-index.js validate[0m
+2026-10-26T21:13:53.9576230Z shell: /usr/bin/bash -e {0}
+2026-10-26T21:13:53.9576564Z ##[endgroup]
+2026-10-26T21:13:53.9932521Z [2026-10-26T21:13:53.988Z] Validating index file...
+2026-10-26T21:13:53.9941069Z [2026-10-26T21:13:53.993Z] Index validation completed successfully
+2026-10-26T21:13:53.9956614Z Validation result: { valid: true, issues: [] }

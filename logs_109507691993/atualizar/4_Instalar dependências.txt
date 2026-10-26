@@ -1,0 +1,8 @@
+﻿2026-10-26T21:12:41.1619485Z ##[group]Run npm ci
+2026-10-26T21:12:41.1620250Z [36;1mnpm ci[0m
+2026-10-26T21:12:41.1880047Z shell: /usr/bin/bash -e {0}
+2026-10-26T21:12:41.1880475Z ##[endgroup]
+2026-10-26T21:12:41.8026035Z 
+2026-10-26T21:12:41.8032688Z added 2 packages, and audited 3 packages in 537ms
+2026-10-26T21:12:41.8035774Z 
+2026-10-26T21:12:41.8036116Z found 0 vulnerabilities

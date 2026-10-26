@@ -359,7 +359,45 @@
     function escapeHtml(value){return value.replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]))}
     document.querySelector("#scorer-form").addEventListener("submit",async event=>{event.preventDefault();if(!managerUnlocked||!currentUser)return;const player=roster.find(p=>p.id===document.querySelector("#player").value),goals=Number(document.querySelector("#goals").value),match=Number(document.querySelector("#match").value);if(!player||!Number.isInteger(goals)||goals<1||goals>20||!Number.isInteger(match)||!matches[match])return;const {error}=await supabaseClient.from("goal_entries").insert({player_id:player.id,match_key:String(match),goals,created_by:currentUser.id});if(error){alert(error.message);return}document.querySelector("#player").value="";document.querySelector("#goals").value="1";document.querySelector("#status").textContent=`Registados ${goals} ${goals===1?"golo":"golos"} para ${player.name}.`;await loadGoalEntries();render()});
     document.querySelector("#manager-toggle").addEventListener("click",()=>{const panel=document.querySelector("#manager-panel");panel.hidden=!panel.hidden;if(!panel.hidden)panel.scrollIntoView({behavior:"smooth",block:"start"})});
-    document.querySelector("#login-form").addEventListener("submit",async event=>{event.preventDefault();if(!supabaseClient){document.querySelector("#login-help").textContent="Configure primeiro SUPABASE_URL e SUPABASE_ANON_KEY.";return}const email=document.querySelector("#manager-email").value.trim(),password=document.querySelector("#manager-password").value;const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error){document.querySelector("#login-help").textContent="Email ou palavra-passe incorretos.";return}currentUser=data.user;const {data:profile}=await supabaseClient.from("profiles").select("role").eq("id",currentUser.id).single();if(!profile||profile.role!=="manager"){await supabaseClient.auth.signOut();document.querySelector("#login-help").textContent="Este utilizador não é gestor.";return}managerUnlocked=true;document.querySelector("#manager-login").hidden=true;document.querySelector("#manager-tools").hidden=false;await loadRoster();await loadGoalEntries();renderRoster();renderPlayerOptions();renderManagerScorers()});
+    document
+    .querySelector("#login-form")
+    .addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const email = document
+      .querySelector("#manager-email")
+      .value
+      .trim();
+
+    const password = document
+      .querySelector("#manager-password")
+      .value;
+
+    const { data, error } =
+      await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+    if (error) {
+      document.querySelector("#login-help").textContent =
+        "Email ou palavra-passe incorretos.";
+      return;
+    }
+
+    managerUnlocked = true;
+    currentUser = data.user;
+
+    document.querySelector("#manager-login").hidden = true;
+    document.querySelector("#manager-tools").hidden = false;
+
+    await loadRoster();
+    await loadGoalEntries();
+
+    renderRoster();
+    renderPlayerOptions();
+    renderManagerScorers();
+  });
     document.querySelector("#manager-logout").addEventListener("click",async()=>{await supabaseClient.auth.signOut();managerUnlocked=false;currentUser=null;document.querySelector("#manager-tools").hidden=true;document.querySelector("#manager-login").hidden=false;renderPlayerOptions()});
     document.querySelector("#roster-form").addEventListener("submit",async event=>{event.preventDefault();if(!managerUnlocked)return;const name=document.querySelector("#roster-name").value.trim(),shirt_number=Number(document.querySelector("#roster-number").value),position=document.querySelector("#roster-position").value.trim();if(!name||!Number.isInteger(shirt_number)||shirt_number<1||shirt_number>99)return;const {error}=await supabaseClient.from("players").insert({name,shirt_number,position,active:true});if(error){alert(error.message);return}event.target.reset();await loadRoster();renderRoster();renderPlayerOptions()});    render();
     renderPlayerOptions();

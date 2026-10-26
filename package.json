@@ -1,0 +1,13 @@
+{
+  "name": "valpacinhos-sub12",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sincronização e página de resultados do Valpacinhos Sub-12",
+  "scripts": {
+    "update": "node update-zonanorte-index.js update",
+    "validate": "node update-zonanorte-index.js validate"
+  },
+  "dependencies": {
+    "playwright": "^1.52.0"
+  }
+}

@@ -1,0 +1,63 @@
+name: Atualizar resultados FPF
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Sincronizar dados da FPF
+        run: node update-zonanorte-index.js update
+
+      - name: Validar índice
+        run: node update-zonanorte-index.js validate
+
+      - name: Verificar alterações
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- index.html zonanorte-championship-index.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configurar identidade Git
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Guardar dados atualizados
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git add index.html zonanorte-championship-index.json
+          git commit -m "Atualizar resultados FPF"
+          git push
+
+      - name: Sem alterações
+        if: steps.changes.outputs.changed == 'false'
+        run: echo "Não foram encontradas alterações nos resultados."

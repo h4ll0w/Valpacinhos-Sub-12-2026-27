@@ -20,12 +20,16 @@
     <section class="section manager-panel" id="manager-panel" hidden><h2>Gestão do plantel</h2><div class="card"><div id="manager-login"><form id="login-form" class="form-grid"><div class="field"><label for="manager-email">Email do gestor</label><input id="manager-email" type="email" required placeholder="gestor@exemplo.pt"></div><div class="field"><label for="manager-password">Palavra-passe do gestor</label><input id="manager-password" type="password" required placeholder="Palavra-passe"></div><button class="button" type="submit">Entrar</button></form><p class="notice" id="login-help">A palavra-passe inicial está definida na configuração do gestor.</p></div><div id="manager-tools" hidden><form id="roster-form" class="form-grid"><div class="field"><label for="roster-name">Nome</label><input id="roster-name" maxlength="60" required placeholder="Nome do jogador"></div><div class="field"><label for="roster-number">Número</label><input id="roster-number" type="number" min="1" max="99" required></div><div class="field"><label for="roster-position">Posição</label><input id="roster-position" maxlength="30" placeholder="Ex.: Avançado"></div><button class="button" type="submit">Adicionar</button></form><div class="roster-list" id="roster-list"></div><div class="manager-scorer"><h3>Registar marcador</h3><form id="scorer-form" class="form-grid"><div class="field"><label for="match">Jogo</label><select id="match" required></select></div><div class="field"><label for="player">Jogador do plantel</label><select id="player" required disabled><option>Entrar como gestor</option></select></div><div class="field"><label for="goals">Golos</label><input id="goals" type="number" min="1" max="20" value="1" required></div><button class="button" type="submit" id="scorer-submit" disabled>Guardar</button></form><p class="notice">Os golos são atribuídos apenas a jogadores existentes no plantel.</p><p class="status" id="status" aria-live="polite"></p><h3>Gerir registos de golos</h3><div class="scorer-history" id="scorer-history"></div></div><button class="button secondary-button" type="button" id="manager-logout">Bloquear área do gestor</button></div></div></section>
   </main><footer class="footer"><div class="wrap">Dados do campeonato apresentados para acompanhamento da equipa.</div></footer>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
     const SUPABASE_URL = "https://wcpjicfscokkiuvsimds.supabase.co";
-    const SUPABASE_ANON_KEY = "  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcGppY2ZzY29ra2l1dnNpbWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5NTcwMjAsImV4cCI6MjEwODUzMzAyMH0.A5zRC6g5VXt64W3cAbMuzKN5QPn-h2vXspRh35qAwpw";
-";
-    const supabaseConfigured = SUPABASE_URL.startsWith("https://") && !SUPABASE_URL.includes("COLE_AQUI") && !SUPABASE_ANON_KEY.includes("COLE_AQUI");
-    const supabaseClient = supabaseConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcGppY2ZzY29ra2l1dnNpbWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5NTcwMjAsImV4cCI6MjEwODUzMzAyMH0.A5zRC6g5VXt64W3cAbMuzKN5QPn-h2vXspRh35qAwpw";
+
+    const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+</script>
     window.__ZONANORTE_DATA__ = /* EMBEDDED_DATA_START */ {
   "metadata": {
     "source": "fpf_browser",

@@ -82,6 +82,26 @@ class ZONA_NORTE_Data_Fetcher {
             await this.waitForChallenge(page);
             const html = await page.content();
             this.logHtmlDiagnostics('competition-browser', html, 200, 'text/html');
+            const domData = await page.evaluate(() => {
+                const zone = document.querySelector('#htmlSerieId_100601');
+                if (!zone) return null;
+                const links = [...zone.querySelectorAll('a,button')].map(element => {
+                    const source = element.getAttribute('href') || element.getAttribute('onclick') || '';
+                    const fixtureId = source.match(/fixtureId\s*[=:]\s*["']?(\d+)/i)?.[1] || null;
+                    const label = (element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
+                    const roundMatch = label.match(/(?:jornada|jorn\.?)[\s:#-]*(\d{1,2})/i) || label.match(/^\s*(\d{1,2})\s*$/);
+                    const container = element.closest('li,.fixture,.round,.jornada,div');
+                    const context = `${element.className || ''} ${container?.className || ''} ${element.getAttribute('aria-current') || ''} ${container?.getAttribute('aria-current') || ''}`;
+                    return {
+                        fixtureId,
+                        jornada: roundMatch ? Number(roundMatch[1]) : null,
+                        label,
+                        selected: /(?:\bactive\b|\bselected\b|\bcurrent\b|page|true)/i.test(context)
+                    };
+                }).filter(link => link.fixtureId);
+                return { zoneHtml: zone.outerHTML, fixtureLinks: links };
+            });
+            if (domData) console.log(`[FPF diagnostic] DOM ZONA-NORTE encontrado: ${domData.fixtureLinks.length} links de jornadas`);
             const data = await this.parseHTMLForZONA(html, async url => {
                 const cached = networkBodies.get(url);
                 if (cached) return this.unwrapNetworkPayload(cached);
@@ -99,7 +119,7 @@ class ZONA_NORTE_Data_Fetcher {
                 }, url);
                 await Promise.allSettled(networkTasks);
                 return this.unwrapNetworkPayload(body);
-            });
+            }, domData);
             data.source = 'fpf_browser';
             return data;
         } catch (error) {
@@ -182,13 +202,13 @@ class ZONA_NORTE_Data_Fetcher {
         const body = await response.text();
         this.logHtmlDiagnostics(`fixture:${url.split('fixtureId=')[1] || 'unknown'}`, body, response.status, response.headers.get('content-type'));
         return body;
-    }) {
+    }, domData = null) {
         // The FPF page contains one block per series.  Keep only htmlSerieId_100601,
         // which is the ZONA-NORTE block for this competition.
         const zoneMatch = html.match(/<div[^>]+id=["']htmlSerieId_100601["'][\s\S]*?(?=<div[^>]+id=["']htmlSerieId_|<\/body>)/i);
-        if (!zoneMatch) throw new Error('ZONA-NORTE series was not found in FPF page');
-        const zoneHtml = zoneMatch[0];
-        const fixtureLinks = this.extractFixtureLinks(zoneHtml);
+        const zoneHtml = domData?.zoneHtml || zoneMatch?.[0];
+        if (!zoneHtml) throw new Error('ZONA-NORTE series was not found in FPF page');
+        const fixtureLinks = domData?.fixtureLinks?.length ? domData.fixtureLinks : this.extractFixtureLinks(zoneHtml);
         const fixtureIds = fixtureLinks.length
             ? fixtureLinks.map(link => link.fixtureId)
             : [...zoneHtml.matchAll(/GetClassificationAndMatchesByFixture\?fixtureId=(\d+)/gi)].map(m => m[1]);

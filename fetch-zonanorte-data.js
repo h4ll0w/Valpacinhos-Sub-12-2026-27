@@ -105,6 +105,7 @@ class ZONA_NORTE_Data_Fetcher {
             await this.dismissCookieBanner(page);
             await this.waitForChallenge(page);
             await this.waitForCompetitionData(page);
+            await this.dismissCookieBanner(page);
             const html = await page.content();
             this.logHtmlDiagnostics('competition-browser', html, 200, 'text/html');
             const domData = await page.evaluate(() => {
@@ -209,10 +210,10 @@ class ZONA_NORTE_Data_Fetcher {
     async dismissCookieBanner(page) {
         try {
             const result = await page.evaluate(() => {
-                const banner = document.querySelector('.bannerCookieWarning');
-                if (!banner) return { found: false, dismissed: false };
-                const candidates = [...banner.querySelectorAll('button, a, input[type="button"], input[type="submit"]')];
-                const consent = candidates.find(element => /aceitar|aceitar todos|accept|allow|concordo|consent/i.test(element.innerText || element.value || ''));
+                const banner = document.querySelector('.bannerCookieWarning, .cky-consent-container, .cky-consent-bar, .cky-overlay');
+                const candidates = [...document.querySelectorAll('.cky-btn-accept, [data-cky-tag="accept-button"], .cky-consent-container button, .bannerCookieWarning button, .cky-btn')];
+                const consent = candidates.find(element => /aceitar|aceitar todos|accept|allow|concordo|consent/i.test(element.innerText || element.value || '') && element.offsetParent !== null);
+                if (!banner && !consent) return { found: false, dismissed: false };
                 if (!consent) return { found: true, dismissed: false };
                 consent.click();
                 return { found: true, dismissed: true, label: (consent.innerText || consent.value || '').trim() };

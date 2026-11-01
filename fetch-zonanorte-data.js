@@ -66,16 +66,39 @@ class ZONA_NORTE_Data_Fetcher {
         try {
             browser = await chromium.launch({ headless: true });
             const page = await browser.newPage({ locale: 'pt-PT', userAgent: 'Mozilla/5.0 Chrome/131 Safari/537.36' });
+            const networkBodies = new Map();
+            const networkTasks = [];
+            page.on('response', response => {
+                if (!this.isFixtureEndpoint(response.url())) return;
+                const task = response.text().then(body => {
+                    networkBodies.set(response.url(), body);
+                    this.logHtmlDiagnostics(`fixture-network:${response.url().split('fixtureId=')[1] || 'unknown'}`, body, response.status(), response.headers()['content-type']);
+                }).catch(error => {
+                    console.warn(`[FPF diagnostic] não foi possível ler resposta de rede ${response.url()}:`, error.message);
+                });
+                networkTasks.push(task);
+            });
             await page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
             await this.waitForChallenge(page);
             const html = await page.content();
             this.logHtmlDiagnostics('competition-browser', html, 200, 'text/html');
             const data = await this.parseHTMLForZONA(html, async url => {
-                await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                await this.waitForChallenge(page);
-                const fixtureHtml = await page.content();
-                this.logHtmlDiagnostics(`fixture-browser:${url.split('fixtureId=')[1] || 'unknown'}`, fixtureHtml, 200, 'text/html');
-                return fixtureHtml;
+                const cached = networkBodies.get(url);
+                if (cached) return this.unwrapNetworkPayload(cached);
+
+                // Fetch inside the FPF page so the browser session's cookies,
+                // origin and Cloudflare state are reused. The response event
+                // above records the raw backend payload as well.
+                const body = await page.evaluate(async endpoint => {
+                    const response = await fetch(endpoint, {
+                        credentials: 'include',
+                        headers: { Accept: 'application/json, text/html, */*' }
+                    });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return await response.text();
+                }, url);
+                await Promise.allSettled(networkTasks);
+                return this.unwrapNetworkPayload(body);
             });
             data.source = 'fpf_browser';
             return data;
@@ -100,6 +123,31 @@ class ZONA_NORTE_Data_Fetcher {
         }
     }
 
+    isFixtureEndpoint(url) {
+        return /\/Competition\/GetClassificationAndMatchesByFixture\?fixtureId=\d+/i.test(url);
+    }
+
+    unwrapNetworkPayload(body) {
+        const source = String(body || '');
+        try {
+            const payload = JSON.parse(source);
+            const candidates = [];
+            const collect = value => {
+                if (typeof value === 'string') {
+                    if (/<(?:div|table|tr|a)\b/i.test(value)) candidates.push(value);
+                    return;
+                }
+                if (Array.isArray(value)) return value.forEach(collect);
+                if (value && typeof value === 'object') Object.values(value).forEach(collect);
+            };
+            collect(payload);
+            if (candidates.length) return candidates.sort((a, b) => b.length - a.length)[0];
+        } catch (error) {
+            // The FPF endpoint commonly returns an HTML fragment, not JSON.
+        }
+        return source;
+    }
+
     extractJornada(html, fallback = null) {
         const text = this.extractTextLines(html).join(' ');
         const match = text.match(/\b(?:jornada|jorn\.?)[\s:#-]*(\d{1,2})\b/i);
@@ -108,19 +156,22 @@ class ZONA_NORTE_Data_Fetcher {
 
     extractFixtureLinks(html) {
         const links = [];
-        const anchorPattern = /<a\b([^>]*href=["'][^"']*GetClassificationAndMatchesByFixture\?fixtureId=\d+[^"']*["'][^>]*)>([\s\S]*?)<\/a>/gi;
-        for (const match of html.matchAll(anchorPattern)) {
-            const attributes = match[1];
-            const href = (attributes.match(/href=["']([^"']+)["']/i) || [])[1];
-            const fixtureId = (href || '').match(/fixtureId=(\d+)/i)?.[1];
+        const elementPattern = /<(a|button)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+        for (const match of html.matchAll(elementPattern)) {
+            const attributes = match[2];
+            const body = match[3];
+            if (!/GetClassificationAndMatchesByFixture|fixtureId\s*[=:]/i.test(attributes)) continue;
+            const fixtureId = attributes.match(/fixtureId\s*[=:]\s*["']?(\d+)/i)?.[1];
             if (!fixtureId) continue;
 
-            const label = this.stripTags(match[2]);
+            const label = this.stripTags(body);
             const jornadaMatch = label.match(/(?:jornada|jorn\.?)[\s:#-]*(\d{1,2})/i) || label.match(/^\s*(\d{1,2})\s*$/);
+            const context = html.slice(Math.max(0, match.index - 300), match.index + match[0].length + 100);
             links.push({
                 fixtureId,
                 jornada: jornadaMatch ? Number(jornadaMatch[1]) : null,
-                label
+                label,
+                selected: /(?:\bactive\b|\bselected\b|\bcurrent\b|aria-current\s*=\s*["'](?:page|true)["'])/i.test(context)
             });
         }
         return links;
@@ -142,6 +193,8 @@ class ZONA_NORTE_Data_Fetcher {
             ? fixtureLinks.map(link => link.fixtureId)
             : [...zoneHtml.matchAll(/GetClassificationAndMatchesByFixture\?fixtureId=(\d+)/gi)].map(m => m[1]);
         console.log(`[FPF diagnostic] jornadas encontradas nos links: ${JSON.stringify(fixtureLinks.map(link => ({ fixtureId: link.fixtureId, jornada: link.jornada, label: link.label })))}`);
+        const selectedJornada = fixtureLinks.find(link => link.selected && link.jornada != null)?.jornada ?? null;
+        console.log(`[FPF diagnostic] jornada selecionada na página: ${selectedJornada ?? 'não identificada'}`);
         let teams = [];
         const matches = [];
 
@@ -151,7 +204,13 @@ class ZONA_NORTE_Data_Fetcher {
         try { teams = this.parseClassification(zoneHtml); } catch (error) {
             console.warn('Could not parse classification from competition page:', error.message);
         }
-        try { matches.push(...this.parseMatches(zoneHtml)); } catch (error) {
+        try {
+            const pageMatches = this.parseMatches(zoneHtml);
+            // The competition page shows the selected jornada directly. Keep
+            // that association when the individual fixture request is blocked.
+            pageMatches.forEach(match => { match.jornada = selectedJornada; });
+            matches.push(...pageMatches);
+        } catch (error) {
             console.warn('Could not parse matches from competition page:', error.message);
         }
 

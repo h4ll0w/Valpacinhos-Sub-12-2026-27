@@ -307,3 +307,23 @@
 2026-11-01 10:16:08,879 - INFO - Created backup: zonanorte-index-backup-20261101_101608.json
 2026-11-01 10:16:08,886 - INFO - Data is unchanged, skipping update
 2026-11-01 10:16:08,887 - INFO - Update cycle completed with no changes
+2026-11-01 10:17:09,504 - INFO - Starting ZONA-NORTE data update cycle
+2026-11-01 10:17:09,504 - INFO - Attempting to fetch data from FPF website
+2026-11-01 10:17:09,620 - INFO - Successfully fetched data from FPF website
+2026-11-01 10:17:09,621 - INFO - Parsing FPF HTML for ZONA-NORTE data
+2026-11-01 10:17:09,621 - INFO - Using fallback data
+2026-11-01 10:17:09,621 - INFO - Loaded fallback data from index.json
+2026-11-01 10:17:09,625 - INFO - Saved data to cache
+2026-11-01 10:17:09,626 - INFO - Created backup: zonanorte-index-backup-20261101_101709.json
+2026-11-01 10:17:09,634 - INFO - Data is unchanged, skipping update
+2026-11-01 10:17:09,634 - INFO - Update cycle completed with no changes
+2026-11-01 10:18:10,255 - INFO - Starting ZONA-NORTE data update cycle
+2026-11-01 10:18:10,255 - INFO - Attempting to fetch data from FPF website
+2026-11-01 10:18:10,667 - INFO - Successfully fetched data from FPF website
+2026-11-01 10:18:10,667 - INFO - Parsing FPF HTML for ZONA-NORTE data
+2026-11-01 10:18:10,667 - INFO - Using fallback data
+2026-11-01 10:18:10,668 - INFO - Loaded fallback data from index.json
+2026-11-01 10:18:10,671 - INFO - Saved data to cache
+2026-11-01 10:18:10,672 - INFO - Created backup: zonanorte-index-backup-20261101_101810.json
+2026-11-01 10:18:10,680 - INFO - Data is unchanged, skipping update
+2026-11-01 10:18:10,680 - INFO - Update cycle completed with no changes

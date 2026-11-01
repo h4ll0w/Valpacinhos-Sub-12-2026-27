@@ -100,6 +100,12 @@ class ZONA_NORTE_Data_Fetcher {
         }
     }
 
+    extractJornada(html, fallback = null) {
+        const text = this.extractTextLines(html).join(' ');
+        const match = text.match(/\b(?:jornada|jorn\.?)[\s:#-]*(\d{1,2})\b/i);
+        return match ? Number(match[1]) : fallback;
+    }
+
     async parseHTMLForZONA(html, requestText = async url => {
         const response = await fetch(url);
         const body = await response.text();
@@ -130,7 +136,8 @@ class ZONA_NORTE_Data_Fetcher {
                 const fixtureUrl = `https://resultados.fpf.pt/Competition/GetClassificationAndMatchesByFixture?fixtureId=${fixtureIds[i]}`;
                 const fixtureHtml = await requestText(fixtureUrl);
                 if (!teams.length) teams = this.parseClassification(fixtureHtml);
-                this.parseMatches(fixtureHtml).forEach(match => { match.jornada = i + 1; matches.push(match); });
+                const jornada = this.extractJornada(fixtureHtml, i + 1);
+                this.parseMatches(fixtureHtml).forEach(match => { match.jornada = jornada; matches.push(match); });
             } catch (error) {
                 console.warn(`Could not load fixture ${fixtureIds[i]}:`, error.message);
             }
@@ -138,7 +145,11 @@ class ZONA_NORTE_Data_Fetcher {
         if (!teams.length) throw new Error('No classification data was returned for ZONA-NORTE');
         const uniqueMatchMap = new Map();
         for (const match of matches) {
-            const key = `${match.home}|${match.homeGoals}|${match.away}|${match.awayGoals}|${match.date || ''}`;
+            const baseKey = `${match.home}|${match.homeGoals}|${match.away}|${match.awayGoals}|${match.date || ''}`;
+            const existingKey = [...uniqueMatchMap.keys()].find(key => key === baseKey || key.startsWith(`${baseKey}|`));
+            const key = existingKey && (uniqueMatchMap.get(existingKey).jornada == null || match.jornada == null || uniqueMatchMap.get(existingKey).jornada === match.jornada)
+                ? existingKey
+                : `${baseKey}|${match.jornada ?? 'unknown'}`;
             const previous = uniqueMatchMap.get(key);
             // Fixture responses carry the real jornada; prefer them over the
             // same match found on the competition page with jornada=null.

@@ -98,7 +98,8 @@ class ZONA_NORTE_Data_Fetcher {
                         fixtureId,
                         jornada: roundMatch ? Number(roundMatch[1]) : null,
                         label,
-                        selected: /(?:\bactive\b|\bselected\b|\bcurrent\b|page|true)/i.test(context)
+                        selected: /(?:\bactive\b|\bselected\b|\bcurrent\b|page|true)/i.test(context),
+                        played: /\bpast\b|\bcurrent\b/i.test(context)
                     };
                 }).filter(link => link.fixtureId);
                 return { zoneHtml: zone.outerHTML, fixtureLinks: links };
@@ -112,21 +113,32 @@ class ZONA_NORTE_Data_Fetcher {
                 // Fetch inside the FPF page so the browser session's cookies,
                 // origin and Cloudflare state are reused. The response event
                 // above records the raw backend payload as well.
-                const body = await page.evaluate(async endpoint => {
-                    const separator = endpoint.includes('?') ? '&' : '?';
-                    const requestUrl = `${endpoint}${separator}X-Requested-With=XMLHttpRequest&_=${Date.now()}`;
-                    const response = await fetch(requestUrl, {
-                        credentials: 'include',
-                        headers: {
-                            Accept: 'text/html, */*; q=0.01',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    return await response.text();
-                }, url);
-                await Promise.allSettled(networkTasks);
-                return this.unwrapNetworkPayload(body);
+                for (let attempt = 1; attempt <= 4; attempt++) {
+                    const result = await page.evaluate(async endpoint => {
+                        const separator = endpoint.includes('?') ? '&' : '?';
+                        const requestUrl = `${endpoint}${separator}X-Requested-With=XMLHttpRequest&_=${Date.now()}`;
+                        const response = await fetch(requestUrl, {
+                            credentials: 'include',
+                            headers: {
+                                Accept: 'text/html, */*; q=0.01',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        return { status: response.status, body: await response.text() };
+                    }, url);
+                    if (result.status === 200) {
+                        await Promise.allSettled(networkTasks);
+                        // Keep the request rate below the FPF/Cloudflare
+                        // threshold when collecting consecutive jornadas.
+                        await new Promise(resolve => setTimeout(resolve, 800));
+                        return this.unwrapNetworkPayload(result.body);
+                    }
+                    if (result.status !== 429) throw new Error(`HTTP ${result.status}`);
+                    const delay = attempt * 1500;
+                    console.warn(`[FPF diagnostic] HTTP 429 em ${url}; nova tentativa em ${delay} ms`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+                throw new Error('HTTP 429 após 4 tentativas');
             }, domData);
             data.source = 'fpf_browser';
             return data;
@@ -199,7 +211,8 @@ class ZONA_NORTE_Data_Fetcher {
                 fixtureId,
                 jornada: jornadaMatch ? Number(jornadaMatch[1]) : null,
                 label,
-                selected: /(?:\bactive\b|\bselected\b|\bcurrent\b|aria-current\s*=\s*["'](?:page|true)["'])/i.test(context)
+                selected: /(?:\bactive\b|\bselected\b|\bcurrent\b|aria-current\s*=\s*["'](?:page|true)["'])/i.test(context),
+                played: /\bpast\b|\bcurrent\b/i.test(context)
             });
         }
         return links;
@@ -217,8 +230,11 @@ class ZONA_NORTE_Data_Fetcher {
         const zoneHtml = domData?.zoneHtml || zoneMatch?.[0];
         if (!zoneHtml) throw new Error('ZONA-NORTE series was not found in FPF page');
         const fixtureLinks = domData?.fixtureLinks?.length ? domData.fixtureLinks : this.extractFixtureLinks(zoneHtml);
-        const fixtureIds = fixtureLinks.length
-            ? fixtureLinks.map(link => link.fixtureId)
+        const linksToFetch = fixtureLinks.some(link => link.played)
+            ? fixtureLinks.filter(link => link.played || link.selected)
+            : fixtureLinks;
+        const fixtureIds = linksToFetch.length
+            ? linksToFetch.map(link => link.fixtureId)
             : [...zoneHtml.matchAll(/GetClassificationAndMatchesByFixture\?fixtureId=(\d+)/gi)].map(m => m[1]);
         console.log(`[FPF diagnostic] jornadas encontradas nos links: ${JSON.stringify(fixtureLinks.map(link => ({ fixtureId: link.fixtureId, jornada: link.jornada, label: link.label })))}`);
         const selectedJornada = fixtureLinks.find(link => link.selected && link.jornada != null)?.jornada ?? null;
@@ -250,7 +266,7 @@ class ZONA_NORTE_Data_Fetcher {
                 // The competition page labels each fixture link with the
                 // jornada number. Prefer that explicit mapping. Only inspect
                 // the response as a fallback; never use the array position.
-                const jornada = fixtureLinks[i]?.jornada ?? this.extractJornada(fixtureHtml);
+                const jornada = linksToFetch[i]?.jornada ?? this.extractJornada(fixtureHtml);
                 const fixtureMatches = this.parseMatches(fixtureHtml);
                 console.log(`[FPF diagnostic] fixture=${fixtureIds[i]} jornada=${jornada ?? 'não identificada'} jogos=${fixtureMatches.length}`);
                 fixtureMatches.forEach(match => { match.jornada = jornada; matches.push(match); });

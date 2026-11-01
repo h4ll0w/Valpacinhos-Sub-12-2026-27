@@ -1,3 +1,5 @@
 data/update.log
 backups/
 node_modules/
+data/updater.log
+data/zonanorte-cache.json

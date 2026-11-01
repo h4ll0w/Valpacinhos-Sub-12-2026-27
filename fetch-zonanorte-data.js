@@ -106,6 +106,26 @@ class ZONA_NORTE_Data_Fetcher {
         return match ? Number(match[1]) : fallback;
     }
 
+    extractFixtureLinks(html) {
+        const links = [];
+        const anchorPattern = /<a\b([^>]*href=["'][^"']*GetClassificationAndMatchesByFixture\?fixtureId=\d+[^"']*["'][^>]*)>([\s\S]*?)<\/a>/gi;
+        for (const match of html.matchAll(anchorPattern)) {
+            const attributes = match[1];
+            const href = (attributes.match(/href=["']([^"']+)["']/i) || [])[1];
+            const fixtureId = (href || '').match(/fixtureId=(\d+)/i)?.[1];
+            if (!fixtureId) continue;
+
+            const label = this.stripTags(match[2]);
+            const jornadaMatch = label.match(/(?:jornada|jorn\.?)[\s:#-]*(\d{1,2})/i) || label.match(/^\s*(\d{1,2})\s*$/);
+            links.push({
+                fixtureId,
+                jornada: jornadaMatch ? Number(jornadaMatch[1]) : null,
+                label
+            });
+        }
+        return links;
+    }
+
     async parseHTMLForZONA(html, requestText = async url => {
         const response = await fetch(url);
         const body = await response.text();
@@ -117,7 +137,11 @@ class ZONA_NORTE_Data_Fetcher {
         const zoneMatch = html.match(/<div[^>]+id=["']htmlSerieId_100601["'][\s\S]*?(?=<div[^>]+id=["']htmlSerieId_|<\/body>)/i);
         if (!zoneMatch) throw new Error('ZONA-NORTE series was not found in FPF page');
         const zoneHtml = zoneMatch[0];
-        const fixtureIds = [...zoneHtml.matchAll(/GetClassificationAndMatchesByFixture\?fixtureId=(\d+)/gi)].map(m => m[1]);
+        const fixtureLinks = this.extractFixtureLinks(zoneHtml);
+        const fixtureIds = fixtureLinks.length
+            ? fixtureLinks.map(link => link.fixtureId)
+            : [...zoneHtml.matchAll(/GetClassificationAndMatchesByFixture\?fixtureId=(\d+)/gi)].map(m => m[1]);
+        console.log(`[FPF diagnostic] jornadas encontradas nos links: ${JSON.stringify(fixtureLinks.map(link => ({ fixtureId: link.fixtureId, jornada: link.jornada, label: link.label })))}`);
         let teams = [];
         const matches = [];
 
@@ -136,10 +160,10 @@ class ZONA_NORTE_Data_Fetcher {
                 const fixtureUrl = `https://resultados.fpf.pt/Competition/GetClassificationAndMatchesByFixture?fixtureId=${fixtureIds[i]}`;
                 const fixtureHtml = await requestText(fixtureUrl);
                 if (!teams.length) teams = this.parseClassification(fixtureHtml);
-                // Never infer the jornada from the position of the fixture ID.
-                // The FPF endpoint can return the same jornada for several
-                // fixture requests, so i + 1 produces incorrect assignments.
-                const jornada = this.extractJornada(fixtureHtml);
+                // The competition page labels each fixture link with the
+                // jornada number. Prefer that explicit mapping. Only inspect
+                // the response as a fallback; never use the array position.
+                const jornada = fixtureLinks[i]?.jornada ?? this.extractJornada(fixtureHtml);
                 this.parseMatches(fixtureHtml).forEach(match => { match.jornada = jornada; matches.push(match); });
             } catch (error) {
                 console.warn(`Could not load fixture ${fixtureIds[i]}:`, error.message);

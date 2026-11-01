@@ -67,10 +67,12 @@ class ZONA_NORTE_Data_Fetcher {
             browser = await chromium.launch({ headless: true });
             const page = await browser.newPage({ locale: 'pt-PT', userAgent: 'Mozilla/5.0 Chrome/131 Safari/537.36' });
             await page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await this.waitForChallenge(page);
             const html = await page.content();
             this.logHtmlDiagnostics('competition-browser', html, 200, 'text/html');
             const data = await this.parseHTMLForZONA(html, async url => {
                 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await this.waitForChallenge(page);
                 const fixtureHtml = await page.content();
                 this.logHtmlDiagnostics(`fixture-browser:${url.split('fixtureId=')[1] || 'unknown'}`, fixtureHtml, 200, 'text/html');
                 return fixtureHtml;
@@ -82,6 +84,19 @@ class ZONA_NORTE_Data_Fetcher {
             return null;
         } finally {
             if (browser) await browser.close();
+        }
+    }
+
+    async waitForChallenge(page) {
+        try {
+            await page.waitForFunction(() => {
+                const title = document.title || '';
+                const body = document.body?.innerText || '';
+                return !/just a moment|enable javascript and cookies/i.test(`${title} ${body}`);
+            }, null, { timeout: 15000 });
+        } catch (error) {
+            // Keep the response for diagnostics; parseHTMLForZONA will report
+            // a useful error if Cloudflare never releases the page.
         }
     }
 
@@ -121,10 +136,17 @@ class ZONA_NORTE_Data_Fetcher {
             }
         }
         if (!teams.length) throw new Error('No classification data was returned for ZONA-NORTE');
-        const uniqueMatches = [...new Map(matches.map(match => [
-            `${match.home}|${match.homeGoals}|${match.away}|${match.awayGoals}|${match.date || ''}`,
-            match
-        ])).values()];
+        const uniqueMatchMap = new Map();
+        for (const match of matches) {
+            const key = `${match.home}|${match.homeGoals}|${match.away}|${match.awayGoals}|${match.date || ''}`;
+            const previous = uniqueMatchMap.get(key);
+            // Fixture responses carry the real jornada; prefer them over the
+            // same match found on the competition page with jornada=null.
+            if (!previous || (previous.jornada == null && match.jornada != null)) {
+                uniqueMatchMap.set(key, match);
+            }
+        }
+        const uniqueMatches = [...uniqueMatchMap.values()];
         return {
             source: 'fpf_website',
             competitionId: this.competitionId,

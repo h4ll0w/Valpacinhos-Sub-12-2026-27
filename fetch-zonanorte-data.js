@@ -136,7 +136,10 @@ class ZONA_NORTE_Data_Fetcher {
                 const fixtureUrl = `https://resultados.fpf.pt/Competition/GetClassificationAndMatchesByFixture?fixtureId=${fixtureIds[i]}`;
                 const fixtureHtml = await requestText(fixtureUrl);
                 if (!teams.length) teams = this.parseClassification(fixtureHtml);
-                const jornada = this.extractJornada(fixtureHtml, i + 1);
+                // Never infer the jornada from the position of the fixture ID.
+                // The FPF endpoint can return the same jornada for several
+                // fixture requests, so i + 1 produces incorrect assignments.
+                const jornada = this.extractJornada(fixtureHtml);
                 this.parseMatches(fixtureHtml).forEach(match => { match.jornada = jornada; matches.push(match); });
             } catch (error) {
                 console.warn(`Could not load fixture ${fixtureIds[i]}:`, error.message);

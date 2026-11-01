@@ -132,6 +132,50 @@ class ZONA_NORTE_Data_Fetcher {
             .filter(row => row.length > 0);
     }
 
+    extractTextLines(html) {
+        return html
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/\s*(div|p|li|tr|td|th|section|article|h[1-6])\s*>/gi, '\n')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/gi, '&')
+            .split(/\r?\n/)
+            .map(line => line.replace(/\s+/g, ' ').trim())
+            .filter(Boolean);
+    }
+
+    parseClassificationFromText(html) {
+        const lines = this.extractTextLines(html);
+        const header = lines.findIndex(line => /^POS$/i.test(line));
+        if (header < 0) return [];
+        const pointsHeader = lines.findIndex((line, index) => index > header && /^PTS$/i.test(line));
+        if (pointsHeader < 0) return [];
+
+        const teams = [];
+        for (let i = pointsHeader + 1; i < lines.length;) {
+            if (!/^\d+$/.test(lines[i])) break;
+            const values = lines.slice(i + 2, i + 9);
+            if (values.length < 7 || values.some(value => !/^\d+$/.test(value))) break;
+            const numbers = [Number(lines[i]), ...values.map(Number)];
+            teams.push({
+                name: lines[i + 1],
+                position: numbers[0],
+                played: numbers[1],
+                won: numbers[2],
+                drawn: numbers[3],
+                lost: numbers[4],
+                goalsFor: numbers[5],
+                goalsAgainst: numbers[6],
+                goalDifference: numbers[5] - numbers[6],
+                points: numbers[7]
+            });
+            i += 9;
+        }
+        return teams;
+    }
+
     parseClassification(html) {
         const teams = [];
         const rows = html.match(/<div[^>]+class=["'][^"']*game classification[^"']*["'][^>]*>[\s\S]*?<\/div>\s*(?=<div[^>]+class=["'][^"']*game classification|<\/div>)/gi) || [];
@@ -164,6 +208,7 @@ class ZONA_NORTE_Data_Fetcher {
                 });
             }
         }
+        if (!teams.length) teams.push(...this.parseClassificationFromText(html));
         if (!teams.length) throw new Error('No classification rows found for ZONA-NORTE');
         return teams;
     }
@@ -200,6 +245,27 @@ class ZONA_NORTE_Data_Fetcher {
                     away,
                     awayGoals: Number(scoreMatch[2]),
                     date: this.parseFpfDate(dateCell || '')
+                });
+            }
+        }
+        if (!matches.length) {
+            const lines = this.extractTextLines(html);
+            const months = /^\d{1,2}\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b/i;
+            for (let i = 1; i < lines.length - 2; i++) {
+                const scoreMatch = lines[i].match(/^(\d+)\s*[-–]\s*(\d+)$/);
+                if (!scoreMatch) continue;
+                const home = lines[i - 1];
+                let dateIndex = i + 1;
+                while (dateIndex < lines.length && !/^\d{1,2}\s+[a-zç]+/i.test(lines[dateIndex])) dateIndex++;
+                const away = lines[dateIndex + 1];
+                if (!home || !away || !months.test(lines[dateIndex])) continue;
+                matches.push({
+                    jornada: null,
+                    home,
+                    homeGoals: Number(scoreMatch[1]),
+                    away,
+                    awayGoals: Number(scoreMatch[2]),
+                    date: this.parseFpfDate(lines[dateIndex])
                 });
             }
         }

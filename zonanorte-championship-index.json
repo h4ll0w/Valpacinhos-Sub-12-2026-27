@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "source": "fallback_index_html",
+    "source": "fpf_browser",
     "competitionId": "30614",
     "seasonId": "106",
     "zona": "ZONA-NORTE",
-    "lastUpdated": "2026-11-01T09:25:29.905Z",
-    "generatedAt": "2026-11-01T09:25:29.920Z",
+    "lastUpdated": "2026-11-01T11:44:53.932Z",
+    "generatedAt": "2026-11-01T11:44:53.964Z",
     "championship": {
       "name": "Campeonato Distrital Sub-12 (Futebol 9 - Zona Norte) • 2026/2027",
       "season": "2026/2027",
@@ -16,20 +16,32 @@
   },
   "teams": [
     {
-      "name": "VALPACINHOS",
+      "name": "Aud Conc. Sabrosa \"C\"",
       "position": 1,
+      "played": 3,
+      "won": 3,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 20,
+      "goalsAgainst": 5,
+      "goalDifference": 15,
+      "points": 9
+    },
+    {
+      "name": "Ade Geração Talentos \"A\"",
+      "position": 2,
       "played": 2,
       "won": 2,
       "drawn": 0,
       "lost": 0,
-      "goalsFor": 4,
-      "goalsAgainst": 2,
-      "goalDifference": 2,
+      "goalsFor": 10,
+      "goalsAgainst": 1,
+      "goalDifference": 9,
       "points": 6
     },
     {
-      "name": "AUDC SABROSA \"C\"",
-      "position": 2,
+      "name": "Gd Vilar Perdizes",
+      "position": 3,
       "played": 2,
       "won": 2,
       "drawn": 0,
@@ -40,164 +52,144 @@
       "points": 6
     },
     {
-      "name": "J. PEDRAS SALGADAS",
-      "position": 3,
-      "played": 1,
-      "won": 1,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 1,
-      "goalsAgainst": 3,
-      "goalDifference": -2,
-      "points": 3
-    },
-    {
-      "name": "GD BOTICAS",
+      "name": "Gd Boticas",
       "position": 4,
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0
-    },
-    {
-      "name": "ADE GERAÇÃO TALENTOS \"A\"",
-      "position": 5,
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0
-    },
-    {
-      "name": "VIDAGO FC",
-      "position": 6,
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0
-    },
-    {
-      "name": "AD FLAVIENSE",
-      "position": 7,
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0
-    },
-    {
-      "name": "GD CHAVES",
-      "position": 8,
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0
-    },
-    {
-      "name": "GD VILAR PERDIZES",
-      "position": 9,
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0
-    }
-  ],
-  "matches": [
-    {
-      "jornada": 1,
-      "homeTeam": "VALPACINHOS",
-      "homeGoals": 3,
-      "awayTeam": "J. PEDRAS SALGADAS",
-      "awayGoals": 1,
-      "date": "01/11/2026"
-    },
-    {
-      "jornada": 2,
-      "homeTeam": "AUDC SABROSA \"C\"",
-      "homeGoals": 9,
-      "awayTeam": "VALPACINHOS",
-      "awayGoals": 1,
-      "date": "01/11/2026"
-    }
-  ],
-  "topScorers": [
-    {
-      "name": "Pepe",
-      "team": "VALPACINHOS",
-      "goals": 1
-    },
-    {
-      "name": "Luis",
-      "team": "VALPACINHOS",
-      "goals": 1
-    },
-    {
-      "name": "Fábio",
-      "team": "VALPACINHOS",
-      "goals": 1
-    }
-  ],
-  "standings": [
-    {
-      "team": "AUDC SABROSA \"C\"",
-      "played": 1,
-      "won": 1,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 9,
-      "goalsAgainst": 1,
-      "goalDifference": 8,
-      "points": 3,
-      "position": 1
-    },
-    {
-      "team": "VALPACINHOS",
       "played": 2,
       "won": 1,
       "drawn": 0,
       "lost": 1,
       "goalsFor": 4,
-      "goalsAgainst": 10,
-      "goalDifference": -6,
+      "goalsAgainst": 8,
+      "goalDifference": -4,
+      "points": 3
+    },
+    {
+      "name": "Clube Desportivo Valpacinhos",
+      "position": 5,
+      "played": 3,
+      "won": 1,
+      "drawn": 0,
+      "lost": 2,
+      "goalsFor": 6,
+      "goalsAgainst": 13,
+      "goalDifference": -7,
+      "points": 3
+    },
+    {
+      "name": "Ad Flaviense",
+      "position": 6,
+      "played": 3,
+      "won": 1,
+      "drawn": 0,
+      "lost": 2,
+      "goalsFor": 4,
+      "goalsAgainst": 13,
+      "goalDifference": -9,
+      "points": 3
+    },
+    {
+      "name": "Gd Chaves",
+      "position": 7,
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "goalsFor": 2,
+      "goalsAgainst": 3,
+      "goalDifference": -1,
+      "points": 0
+    },
+    {
+      "name": "Juv. Pedras Salgadas Adrc",
+      "position": 8,
+      "played": 2,
+      "won": 0,
+      "drawn": 0,
+      "lost": 2,
+      "goalsFor": 1,
+      "goalsAgainst": 5,
+      "goalDifference": -4,
+      "points": 0
+    },
+    {
+      "name": "Vidago Fc",
+      "position": 9,
+      "played": 2,
+      "won": 0,
+      "drawn": 0,
+      "lost": 2,
+      "goalsFor": 1,
+      "goalsAgainst": 8,
+      "goalDifference": -7,
+      "points": 0
+    }
+  ],
+  "matches": [
+    {
+      "jornada": null,
+      "homeTeam": "Gd Boticas",
+      "homeGoals": 2,
+      "awayTeam": "Aud Conc. Sabrosa \"C\"",
+      "awayGoals": 8,
+      "date": "2026-10-31"
+    },
+    {
+      "jornada": null,
+      "homeTeam": "Clube Desportivo Valpacinhos",
+      "homeGoals": 2,
+      "awayTeam": "Gd Vilar Perdizes",
+      "awayGoals": 3,
+      "date": "2026-10-31"
+    },
+    {
+      "jornada": null,
+      "homeTeam": "Ad Flaviense",
+      "homeGoals": 3,
+      "awayTeam": "Vidago Fc",
+      "awayGoals": 1,
+      "date": "2026-10-31"
+    }
+  ],
+  "topScorers": [],
+  "standings": [
+    {
+      "team": "Aud Conc. Sabrosa \"C\"",
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 8,
+      "goalsAgainst": 2,
+      "goalDifference": 6,
+      "points": 3,
+      "position": 1
+    },
+    {
+      "team": "Ad Flaviense",
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 3,
+      "goalsAgainst": 1,
+      "goalDifference": 2,
       "points": 3,
       "position": 2
     },
     {
-      "team": "GD BOTICAS",
-      "played": 0,
-      "won": 0,
+      "team": "Gd Vilar Perdizes",
+      "played": 1,
+      "won": 1,
       "drawn": 0,
       "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
+      "goalsFor": 3,
+      "goalsAgainst": 2,
+      "goalDifference": 1,
+      "points": 3,
       "position": 3
     },
     {
-      "team": "ADE GERAÇÃO TALENTOS \"A\"",
+      "team": "Ade Geração Talentos \"A\"",
       "played": 0,
       "won": 0,
       "drawn": 0,
@@ -209,7 +201,7 @@
       "position": 4
     },
     {
-      "team": "VIDAGO FC",
+      "team": "Gd Chaves",
       "played": 0,
       "won": 0,
       "drawn": 0,
@@ -221,7 +213,7 @@
       "position": 5
     },
     {
-      "team": "AD FLAVIENSE",
+      "team": "Juv. Pedras Salgadas Adrc",
       "played": 0,
       "won": 0,
       "drawn": 0,
@@ -233,31 +225,19 @@
       "position": 6
     },
     {
-      "team": "GD CHAVES",
-      "played": 0,
+      "team": "Clube Desportivo Valpacinhos",
+      "played": 1,
       "won": 0,
       "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
+      "lost": 1,
+      "goalsFor": 2,
+      "goalsAgainst": 3,
+      "goalDifference": -1,
       "points": 0,
       "position": 7
     },
     {
-      "team": "GD VILAR PERDIZES",
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 8
-    },
-    {
-      "team": "J. PEDRAS SALGADAS",
+      "team": "Vidago Fc",
       "played": 1,
       "won": 0,
       "drawn": 0,
@@ -265,6 +245,18 @@
       "goalsFor": 1,
       "goalsAgainst": 3,
       "goalDifference": -2,
+      "points": 0,
+      "position": 8
+    },
+    {
+      "team": "Gd Boticas",
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "goalsFor": 2,
+      "goalsAgainst": 8,
+      "goalDifference": -6,
       "points": 0,
       "position": 9
     }

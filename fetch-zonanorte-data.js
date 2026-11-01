@@ -43,6 +43,7 @@ class ZONA_NORTE_Data_Fetcher {
             }
 
             const html = await response.text();
+            this.logHtmlDiagnostics('competition', html, response.status, response.headers.get('content-type'));
             return await this.parseHTMLForZONA(html);
 
         } catch (error) {
@@ -67,9 +68,12 @@ class ZONA_NORTE_Data_Fetcher {
             const page = await browser.newPage({ locale: 'pt-PT', userAgent: 'Mozilla/5.0 Chrome/131 Safari/537.36' });
             await page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
             const html = await page.content();
+            this.logHtmlDiagnostics('competition-browser', html, 200, 'text/html');
             const data = await this.parseHTMLForZONA(html, async url => {
                 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                return await page.content();
+                const fixtureHtml = await page.content();
+                this.logHtmlDiagnostics(`fixture-browser:${url.split('fixtureId=')[1] || 'unknown'}`, fixtureHtml, 200, 'text/html');
+                return fixtureHtml;
             });
             data.source = 'fpf_browser';
             return data;
@@ -81,7 +85,12 @@ class ZONA_NORTE_Data_Fetcher {
         }
     }
 
-    async parseHTMLForZONA(html, requestText = async url => (await fetch(url)).text()) {
+    async parseHTMLForZONA(html, requestText = async url => {
+        const response = await fetch(url);
+        const body = await response.text();
+        this.logHtmlDiagnostics(`fixture:${url.split('fixtureId=')[1] || 'unknown'}`, body, response.status, response.headers.get('content-type'));
+        return body;
+    }) {
         // The FPF page contains one block per series.  Keep only htmlSerieId_100601,
         // which is the ZONA-NORTE block for this competition.
         const zoneMatch = html.match(/<div[^>]+id=["']htmlSerieId_100601["'][\s\S]*?(?=<div[^>]+id=["']htmlSerieId_|<\/body>)/i);
@@ -92,7 +101,8 @@ class ZONA_NORTE_Data_Fetcher {
         const matches = [];
         for (let i = 0; i < fixtureIds.length; i++) {
             try {
-                const fixtureHtml = await requestText(`https://resultados.fpf.pt/Competition/GetClassificationAndMatchesByFixture?fixtureId=${fixtureIds[i]}`);
+                const fixtureUrl = `https://resultados.fpf.pt/Competition/GetClassificationAndMatchesByFixture?fixtureId=${fixtureIds[i]}`;
+                const fixtureHtml = await requestText(fixtureUrl);
                 if (!teams.length) teams = this.parseClassification(fixtureHtml);
                 this.parseMatches(fixtureHtml).forEach(match => { match.jornada = i + 1; matches.push(match); });
             } catch (error) {
@@ -120,6 +130,22 @@ class ZONA_NORTE_Data_Fetcher {
             },
             fixtureIds
         };
+    }
+
+    logHtmlDiagnostics(label, html, status = 'n/a', contentType = 'unknown') {
+        const source = String(html || '');
+        const title = (source.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1];
+        const markers = {
+            zonaNorte: /ZONA[-\s]?NORTE/i.test(source),
+            classificationHeaders: /\bPOS\b[\s\S]{0,300}\bPTS\b/i.test(source),
+            tableRows: /<tr\b/i.test(source),
+            legacyClassification: /game\s+classification/i.test(source),
+            gameLinks: /game-link/i.test(source),
+            accessDenied: /access denied|forbidden|captcha|cloudflare|robot/i.test(source)
+        };
+        const preview = this.extractTextLines(source).slice(0, 18).join(' | ').slice(0, 500);
+        const bytes = typeof Buffer !== 'undefined' ? Buffer.byteLength(source, 'utf8') : new TextEncoder().encode(source).length;
+        console.log(`[FPF diagnostic] ${label} status=${status} contentType=${contentType || 'unknown'} bytes=${bytes} title=${JSON.stringify(this.stripTags(title || ''))} markers=${JSON.stringify(markers)} preview=${JSON.stringify(preview)}`);
     }
 
     stripTags(value) { return value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&quot;/gi, '"').replace(/&#39;/g, "'").replace(/&amp;/gi, '&').replace(/\s+/g, ' ').trim(); }

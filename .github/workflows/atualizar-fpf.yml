@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: atualizar-fpf-main
+  cancel-in-progress: false
+
 jobs:
   atualizar:
     runs-on: ubuntu-latest
@@ -60,7 +64,15 @@ jobs:
         run: |
           git add index.html zonanorte-championship-index.json
           git commit -m "Atualizar resultados FPF"
-          git push
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push falhou na tentativa ${attempt}; a tentar novamente..."
+            sleep $((attempt * 2))
+          done
+          echo "Não foi possível sincronizar e publicar as alterações." >&2
+          exit 1
 
       - name: Sem alterações
         if: steps.changes.outputs.changed == 'false'

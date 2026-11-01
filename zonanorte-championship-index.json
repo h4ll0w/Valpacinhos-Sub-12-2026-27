@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "source": "fpf_website",
+    "source": "fpf_browser",
     "competitionId": "30614",
     "seasonId": "106",
     "zona": "ZONA-NORTE",
-    "lastUpdated": "2026-11-01T13:20:40.955Z",
-    "generatedAt": "2026-11-01T13:20:40.955Z",
+    "lastUpdated": "2026-11-01T13:32:59.972Z",
+    "generatedAt": "2026-11-01T13:33:00.003Z",
     "championship": {
       "name": "Campeonato Distrital Sub-12 (Futebol 9 - Zona Norte) • 2026/2027",
       "season": "2026/2027",
@@ -28,7 +28,7 @@
       "points": 9
     },
     {
-      "name": "Ade Gera&#231;&#227;o Talentos \"A\"",
+      "name": "Ade Geração Talentos \"A\"",
       "position": 2,
       "played": 2,
       "won": 2,
@@ -165,7 +165,7 @@
       "position": 1
     },
     {
-      "team": "Ade Gera&#231;&#227;o Talentos \"A\"",
+      "team": "Ade Geração Talentos \"A\"",
       "played": 2,
       "won": 2,
       "drawn": 0,

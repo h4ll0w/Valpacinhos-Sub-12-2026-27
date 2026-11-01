@@ -32,6 +32,10 @@ jobs:
       - name: Sincronizar dados da FPF
         run: node update-zonanorte-index.js update
 
+      - name: Confirmar origem dos dados
+        run: |
+          node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync('zonanorte-championship-index.json','utf8')); if (data.metadata?.source === 'fallback_index_html') { console.error('A FPF não forneceu dados actuais; o fallback não será publicado.'); process.exit(1); } console.log('Origem dos dados:', data.metadata?.source);"
+
       - name: Validar índice
         run: node update-zonanorte-index.js validate
 

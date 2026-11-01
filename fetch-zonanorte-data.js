@@ -124,6 +124,14 @@ class ZONA_NORTE_Data_Fetcher {
 
     stripTags(value) { return value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&quot;/gi, '"').replace(/&#39;/g, "'").replace(/&amp;/gi, '&').replace(/\s+/g, ' ').trim(); }
 
+    extractTableRows(html) {
+        return [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)]
+            .map(match => [...match[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)]
+                .map(cell => this.stripTags(cell[1]))
+                .filter(Boolean))
+            .filter(row => row.length > 0);
+    }
+
     parseClassification(html) {
         const teams = [];
         const rows = html.match(/<div[^>]+class=["'][^"']*game classification[^"']*["'][^>]*>[\s\S]*?<\/div>\s*(?=<div[^>]+class=["'][^"']*game classification|<\/div>)/gi) || [];
@@ -132,6 +140,29 @@ class ZONA_NORTE_Data_Fetcher {
             if (cells.length < 9 || !/^\d+$/.test(cells[0])) continue;
             const n = cells.slice(0, 9).map(Number);
             teams.push({ name: cells[1], position: n[0], played: n[2], won: n[3], drawn: n[4], lost: n[5], goalsFor: n[6], goalsAgainst: n[7], goalDifference: n[6] - n[7], points: n[8] });
+        }
+
+        // The FPF portal currently returns the classification as a regular
+        // HTML table in some responses. Keep the legacy parser above, but
+        // also accept rows such as: POS | team | JGS | V | E | D | GM | GS | PTS.
+        if (!teams.length) {
+            for (const cells of this.extractTableRows(html)) {
+                if (cells.length < 9 || !/^\d+$/.test(cells[0])) continue;
+                const numbers = cells.slice(0, 1).concat(cells.slice(2, 9)).map(Number);
+                if (numbers.some(number => !Number.isFinite(number))) continue;
+                teams.push({
+                    name: cells[1],
+                    position: numbers[0],
+                    played: numbers[1],
+                    won: numbers[2],
+                    drawn: numbers[3],
+                    lost: numbers[4],
+                    goalsFor: numbers[5],
+                    goalsAgainst: numbers[6],
+                    goalDifference: numbers[5] - numbers[6],
+                    points: numbers[7]
+                });
+            }
         }
         if (!teams.length) throw new Error('No classification rows found for ZONA-NORTE');
         return teams;
@@ -148,6 +179,29 @@ class ZONA_NORTE_Data_Fetcher {
             if (!home || !away || !scoreMatch) continue; // scheduled matches have no result yet
             const dateText = this.stripTags((row.match(/class=["'][^"']*game-schedule[^"']*["'][^>]*>([\s\S]*?)<\/span>/i) || [])[1] || '');
             matches.push({ jornada: null, home, homeGoals: Number(scoreMatch[1]), away, awayGoals: Number(scoreMatch[2]), date: this.parseFpfDate(dateText) });
+        }
+
+        // Newer responses may not use the game-link class. Parse table rows
+        // with a score cell as a structural fallback.
+        if (!matches.length) {
+            for (const cells of this.extractTableRows(html)) {
+                const scoreIndex = cells.findIndex(cell => /\b\d+\s*[-–]\s*\d+\b/.test(cell));
+                if (scoreIndex < 1 || scoreIndex >= cells.length - 1) continue;
+                const scoreMatch = cells[scoreIndex].match(/(\d+)\s*[-–]\s*(\d+)/);
+                if (!scoreMatch) continue;
+                const home = cells[scoreIndex - 1];
+                const away = cells[scoreIndex + 1];
+                if (!home || !away || /^\d/.test(home) || /^\d/.test(away)) continue;
+                const dateCell = cells.find(cell => /\b\d{1,2}\s+[a-zç]{3,}\b/i.test(cell));
+                matches.push({
+                    jornada: null,
+                    home,
+                    homeGoals: Number(scoreMatch[1]),
+                    away,
+                    awayGoals: Number(scoreMatch[2]),
+                    date: this.parseFpfDate(dateCell || '')
+                });
+            }
         }
         return matches;
     }

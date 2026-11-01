@@ -120,7 +120,15 @@ class ZONA_NORTE_Data_Updater:
         if self.is_cache_valid(cache_file):
             try:
                 with open(cache_file, 'r') as f:
-                    data = json.load(f)
+                    cache_data = json.load(f)
+                data = cache_data
+                # Older versions wrapped the cache on every cycle. Unwrap
+                # those records so a malformed cache cannot become permanent.
+                while isinstance(data, dict) and 'data' in data and not {'metadata', 'teams', 'matches'}.issubset(data):
+                    nested = data.get('data')
+                    if not isinstance(nested, dict) or nested is data:
+                        break
+                    data = nested
                 self.log("Loaded data from cache")
                 return data
             except Exception as e:
@@ -447,23 +455,21 @@ class ZONA_NORTE_Data_Updater:
         """Run complete update cycle"""
         self.log("Starting ZONA-NORTE data update cycle")
 
-        # Load from cache if valid
+        # Try the source on every cycle. Cache is a fallback, not the source
+        # of truth; otherwise a long-running process keeps refreshing its own
+        # cache timestamp and never checks the FPF site again.
         cache_file = self.get_cache_file()
-        cached_data = self.load_from_cache(cache_file)
+        website_data = self.fetch_from_fpf()
 
-        if cached_data:
-            self.log("Using cached data as starting point")
-            data = cached_data
+        if website_data:
+            data = website_data
         else:
-            self.log("No valid cache found, fetching fresh data")
-
-            # Try to fetch from FPF website
-            website_data = self.fetch_from_fpf()
-
-            if website_data:
-                data = website_data
+            cached_data = self.load_from_cache(cache_file)
+            if cached_data:
+                self.log("Website fetch failed, using cached data", "WARNING")
+                data = cached_data
             else:
-                self.log("Website fetch failed, using fallback data", "WARNING")
+                self.log("Website fetch failed and no valid cache exists, using fallback data", "WARNING")
                 data = self.get_fallback_data()
 
         if not data:

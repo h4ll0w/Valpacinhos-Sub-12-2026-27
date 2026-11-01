@@ -36,11 +36,40 @@
     let managerUnlocked = false;
     let roster = [];
     let scorerEntries = [];
-    let teams=["VALPACINHOS","J. PEDRAS SALGADAS",'AUDC SABROSA "C"',"GD BOTICAS",'ADE GERAÇÃO TALENTOS "A"',"VIDAGO FC","AD FLAVIENSE","GD CHAVES","GD VILAR PERDIZES"];
-    let matches=[
-      {round:1,home:"VALPACINHOS",hg:3,away:"J. PEDRAS SALGADAS",ag:1,date:"2026-10-18"},
-      {round:2,home:'AUDC SABROSA "C"',hg:9,away:"VALPACINHOS",ag:1,date:"2026-10-25"}
-    ];
+    let teams=[];
+    let matches=[];
+    let championshipData=window.__ZONANORTE_DATA__;
+
+    function applyChampionshipData(data){
+      if(!data || !Array.isArray(data.teams) || !Array.isArray(data.matches)){
+        throw new Error("Formato de dados do campeonato inválido");
+      }
+      championshipData=data;
+      teams=data.teams.map(team=>team.name).filter(Boolean);
+      matches=data.matches.map((match,index)=>({
+        round:match.jornada ?? match.round ?? index+1,
+        home:match.homeTeam ?? match.home ?? match.casa,
+        hg:Number(match.homeGoals ?? match.hg ?? match.goloCasa),
+        away:match.awayTeam ?? match.away ?? match.fora,
+        ag:Number(match.awayGoals ?? match.ag ?? match.goloFora),
+        date:match.date ?? null
+      })).filter(match=>match.home && match.away && Number.isFinite(match.hg) && Number.isFinite(match.ag));
+    }
+
+    async function loadChampionshipData(){
+      const embeddedData=window.__ZONANORTE_DATA__;
+      try{
+        const response=await fetch(`zonanorte-championship-index.json?cacheBust=${Date.now()}`,{cache:"no-store"});
+        if(!response.ok)throw new Error(`HTTP ${response.status}`);
+        applyChampionshipData(await response.json());
+        console.info("Dados do campeonato carregados do JSON publicado.");
+      }catch(error){
+        console.warn("Não foi possível carregar o JSON publicado; a usar os dados embutidos.",error);
+        applyChampionshipData(embeddedData);
+      }
+      render();
+      renderPlayerOptions();
+    }
     async function loadRoster() {
       const { data, error } = await supabaseClient
         .from("players")
@@ -230,9 +259,8 @@
         await loadRoster();
         renderRoster();
         renderPlayerOptions();
-      });    render();
-    renderPlayerOptions();
-    loadFpfData();
+      });
+    loadChampionshipData();
   </script>
 </body>
 </html>

@@ -470,7 +470,21 @@ class ZONA_NORTE_Data_Fetcher {
             teams: teams,
             matches: matches,
             topScorers: topScorers,
-            standings: this.calculateStandings(teams, matches),
+            // The FPF classification is authoritative. Recalculating it from
+            // the competition page would be wrong when Cloudflare blocks some
+            // fixture endpoints and only a subset of matches is available.
+            standings: teams.map(team => ({
+                team: team.name,
+                played: team.played,
+                won: team.won,
+                drawn: team.drawn,
+                lost: team.lost,
+                goalsFor: team.goalsFor,
+                goalsAgainst: team.goalsAgainst,
+                goalDifference: team.goalDifference,
+                points: team.points,
+                position: team.position
+            })),
             zonaInfo: {
                 totalTeams: teams.length,
                 zonaName: this.zona,

@@ -99,6 +99,17 @@ class ZONA_NORTE_Data_Fetcher {
         const fixtureIds = [...zoneHtml.matchAll(/GetClassificationAndMatchesByFixture\?fixtureId=(\d+)/gi)].map(m => m[1]);
         let teams = [];
         const matches = [];
+
+        // The competition page itself contains the current classification
+        // and played games. Prefer it because Cloudflare may challenge the
+        // individual fixture endpoints even when the competition page loads.
+        try { teams = this.parseClassification(zoneHtml); } catch (error) {
+            console.warn('Could not parse classification from competition page:', error.message);
+        }
+        try { matches.push(...this.parseMatches(zoneHtml)); } catch (error) {
+            console.warn('Could not parse matches from competition page:', error.message);
+        }
+
         for (let i = 0; i < fixtureIds.length; i++) {
             try {
                 const fixtureUrl = `https://resultados.fpf.pt/Competition/GetClassificationAndMatchesByFixture?fixtureId=${fixtureIds[i]}`;
@@ -110,6 +121,10 @@ class ZONA_NORTE_Data_Fetcher {
             }
         }
         if (!teams.length) throw new Error('No classification data was returned for ZONA-NORTE');
+        const uniqueMatches = [...new Map(matches.map(match => [
+            `${match.home}|${match.homeGoals}|${match.away}|${match.awayGoals}|${match.date || ''}`,
+            match
+        ])).values()];
         return {
             source: 'fpf_website',
             competitionId: this.competitionId,
@@ -118,7 +133,7 @@ class ZONA_NORTE_Data_Fetcher {
             lastUpdated: new Date().toISOString(),
             data: {
                 teams,
-                matches,
+                matches: uniqueMatches,
                 topScorers: [],
                 championship: {
                     name: "Campeonato Distrital Sub-12 (Futebol 9 - Zona Norte) • 2026/2027",

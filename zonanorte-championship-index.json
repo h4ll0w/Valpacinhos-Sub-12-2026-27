@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "source": "fpf_browser",
+    "source": "fpf_website",
     "competitionId": "30614",
     "seasonId": "106",
     "zona": "ZONA-NORTE",
-    "lastUpdated": "2026-11-01T20:58:20.302Z",
-    "generatedAt": "2026-11-01T20:58:20.333Z",
+    "lastUpdated": "2026-11-01T21:08:31.094Z",
+    "generatedAt": "2026-11-01T21:08:31.094Z",
     "championship": {
       "name": "Campeonato Distrital Sub-12 (Futebol 9 - Zona Norte) • 2026/2027",
       "season": "2026/2027",
@@ -126,7 +126,7 @@
   ],
   "matches": [
     {
-      "jornada": 3,
+      "jornada": 2,
       "homeTeam": "Gd Boticas",
       "homeGoals": 2,
       "awayTeam": "Aud Conc. Sabrosa \"C\"",
@@ -134,7 +134,7 @@
       "date": "2026-10-31"
     },
     {
-      "jornada": 3,
+      "jornada": 2,
       "homeTeam": "Clube Desportivo Valpacinhos",
       "homeGoals": 2,
       "awayTeam": "Gd Vilar Perdizes",
@@ -142,7 +142,7 @@
       "date": "2026-10-31"
     },
     {
-      "jornada": 3,
+      "jornada": 2,
       "homeTeam": "Ad Flaviense",
       "homeGoals": 3,
       "awayTeam": "Vidago Fc",

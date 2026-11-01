@@ -72,6 +72,8 @@ class ZONA_NORTE_Data_Fetcher {
                 if (!this.isFixtureEndpoint(response.url())) return;
                 const task = response.text().then(body => {
                     networkBodies.set(response.url(), body);
+                    const fixtureId = response.url().match(/fixtureId=(\d+)/i)?.[1];
+                    if (fixtureId) networkBodies.set(`fixture:${fixtureId}`, body);
                     this.logHtmlDiagnostics(`fixture-network:${response.url().split('fixtureId=')[1] || 'unknown'}`, body, response.status(), response.headers()['content-type']);
                 }).catch(error => {
                     console.warn(`[FPF diagnostic] não foi possível ler resposta de rede ${response.url()}:`, error.message);
@@ -103,16 +105,22 @@ class ZONA_NORTE_Data_Fetcher {
             });
             if (domData) console.log(`[FPF diagnostic] DOM ZONA-NORTE encontrado: ${domData.fixtureLinks.length} links de jornadas`);
             const data = await this.parseHTMLForZONA(html, async url => {
-                const cached = networkBodies.get(url);
+                const fixtureId = url.match(/fixtureId=(\d+)/i)?.[1];
+                const cached = networkBodies.get(url) || (fixtureId && networkBodies.get(`fixture:${fixtureId}`));
                 if (cached) return this.unwrapNetworkPayload(cached);
 
                 // Fetch inside the FPF page so the browser session's cookies,
                 // origin and Cloudflare state are reused. The response event
                 // above records the raw backend payload as well.
                 const body = await page.evaluate(async endpoint => {
-                    const response = await fetch(endpoint, {
+                    const separator = endpoint.includes('?') ? '&' : '?';
+                    const requestUrl = `${endpoint}${separator}X-Requested-With=XMLHttpRequest&_=${Date.now()}`;
+                    const response = await fetch(requestUrl, {
                         credentials: 'include',
-                        headers: { Accept: 'application/json, text/html, */*' }
+                        headers: {
+                            Accept: 'text/html, */*; q=0.01',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
                     });
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     return await response.text();
@@ -302,7 +310,17 @@ class ZONA_NORTE_Data_Fetcher {
         console.log(`[FPF diagnostic] ${label} status=${status} contentType=${contentType || 'unknown'} bytes=${bytes} title=${JSON.stringify(this.stripTags(title || ''))} markers=${JSON.stringify(markers)} preview=${JSON.stringify(preview)}`);
     }
 
-    stripTags(value) { return value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&quot;/gi, '"').replace(/&#39;/g, "'").replace(/&amp;/gi, '&').replace(/\s+/g, ' ').trim(); }
+    stripTags(value) {
+        return value.replace(/<[^>]*>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/gi, '&')
+            .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)))
+            .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
 
     extractTableRows(html) {
         return [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)]

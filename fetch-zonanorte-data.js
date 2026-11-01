@@ -251,7 +251,9 @@ class ZONA_NORTE_Data_Fetcher {
                 // jornada number. Prefer that explicit mapping. Only inspect
                 // the response as a fallback; never use the array position.
                 const jornada = fixtureLinks[i]?.jornada ?? this.extractJornada(fixtureHtml);
-                this.parseMatches(fixtureHtml).forEach(match => { match.jornada = jornada; matches.push(match); });
+                const fixtureMatches = this.parseMatches(fixtureHtml);
+                console.log(`[FPF diagnostic] fixture=${fixtureIds[i]} jornada=${jornada ?? 'não identificada'} jogos=${fixtureMatches.length}`);
+                fixtureMatches.forEach(match => { match.jornada = jornada; matches.push(match); });
             } catch (error) {
                 console.warn(`Could not load fixture ${fixtureIds[i]}:`, error.message);
             }
@@ -419,9 +421,9 @@ class ZONA_NORTE_Data_Fetcher {
             const away = this.stripTags((row.match(/class=["'][^"']*away-team[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) || [])[1] || '');
             const score = this.stripTags((row.match(/class=["'][^"']*score[^"']*["'][^>]*>[\s\S]*?<span[^>]*>\s*([^<]+?)\s*<\/span>/i) || [])[1] || '');
             const scoreMatch = score.match(/(\d+)\s*[-–]\s*(\d+)/);
-            if (!home || !away || !scoreMatch) continue; // scheduled matches have no result yet
+            if (!home || !away) continue;
             const dateText = this.stripTags((row.match(/class=["'][^"']*game-schedule[^"']*["'][^>]*>([\s\S]*?)<\/span>/i) || [])[1] || '');
-            matches.push({ jornada: null, home, homeGoals: Number(scoreMatch[1]), away, awayGoals: Number(scoreMatch[2]), date: this.parseFpfDate(dateText) });
+            matches.push({ jornada: null, home, homeGoals: scoreMatch ? Number(scoreMatch[1]) : null, away, awayGoals: scoreMatch ? Number(scoreMatch[2]) : null, date: this.parseFpfDate(dateText) });
         }
 
         // Newer responses may not use the game-link class. Parse table rows
@@ -602,9 +604,9 @@ class ZONA_NORTE_Data_Fetcher {
         const matches = data.data.matches.map(match => ({
             jornada: match.jornada,
             homeTeam: match.home || match.casa,
-            homeGoals: match.homeGoals ?? match.goloCasa,
+            homeGoals: match.homeGoals === null ? null : (match.homeGoals ?? match.goloCasa),
             awayTeam: match.away || match.fora,
-            awayGoals: match.awayGoals ?? match.goloFora,
+            awayGoals: match.awayGoals === null ? null : (match.awayGoals ?? match.goloFora),
             date: match.date || new Date().toLocaleDateString('pt-PT')
         }));
 

@@ -5,8 +5,8 @@
       "competitionId": "30614",
       "seasonId": "106",
       "zona": "ZONA-NORTE",
-      "lastUpdated": "2026-11-01T08:42:46.997Z",
-      "generatedAt": "2026-11-01T08:42:47.028Z",
+      "lastUpdated": "2026-11-01T09:25:29.905Z",
+      "generatedAt": "2026-11-01T09:25:29.920Z",
       "championship": {
         "name": "Campeonato Distrital Sub-12 (Futebol 9 - Zona Norte) \u00e2\u20ac\u00a2 2026/2027",
         "season": "2026/2027",
@@ -278,6 +278,6 @@
       "ageGroup": "Sub-12"
     }
   },
-  "timestamp": "2026-11-01T09:10:53.574827",
+  "timestamp": "2026-11-01T10:16:08.873515",
   "source": "updater_script"
 }

@@ -64,8 +64,29 @@ class ZONA_NORTE_Data_Fetcher {
         }
         let browser;
         try {
-            browser = await chromium.launch({ headless: true });
-            const page = await browser.newPage({ locale: 'pt-PT', userAgent: 'Mozilla/5.0 Chrome/131 Safari/537.36' });
+            browser = await chromium.launch({
+                headless: true,
+                args: [
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-dev-shm-usage',
+                    '--no-first-run',
+                    '--no-default-browser-check'
+                ]
+            });
+            const context = await browser.newContext({
+                locale: 'pt-PT',
+                timezoneId: 'Europe/Lisbon',
+                viewport: { width: 1365, height: 900 },
+                screen: { width: 1365, height: 900 },
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                extraHTTPHeaders: {
+                    'Accept-Language': 'pt-PT,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+                }
+            });
+            await context.addInitScript(() => {
+                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            });
+            const page = await context.newPage();
             const networkBodies = new Map();
             const networkTasks = [];
             page.on('response', response => {
@@ -81,7 +102,9 @@ class ZONA_NORTE_Data_Fetcher {
                 networkTasks.push(task);
             });
             await page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await this.dismissCookieBanner(page);
             await this.waitForChallenge(page);
+            await this.waitForCompetitionData(page);
             const html = await page.content();
             this.logHtmlDiagnostics('competition-browser', html, 200, 'text/html');
             const domData = await page.evaluate(() => {
@@ -160,6 +183,44 @@ class ZONA_NORTE_Data_Fetcher {
         } catch (error) {
             // Keep the response for diagnostics; parseHTMLForZONA will report
             // a useful error if Cloudflare never releases the page.
+        }
+    }
+
+    async waitForCompetitionData(page) {
+        try {
+            await page.waitForLoadState('networkidle', { timeout: 10000 });
+        } catch (error) {
+            // Analytics and consent services can keep the network technically
+            // busy; the targeted DOM condition below is authoritative.
+            console.log('[FPF diagnostic] networkidle não atingido; a aguardar os seletores da competição');
+        }
+        try {
+            await page.waitForFunction(() => {
+                const zone = document.querySelector('#htmlSerieId_100601');
+                if (!zone) return false;
+                return Boolean(zone.querySelector('.game-link, .game.classification, #classification'));
+            }, null, { timeout: 15000 });
+            console.log('[FPF diagnostic] DOM da competição carregado: classificação/jogos encontrados');
+        } catch (error) {
+            console.warn('[FPF diagnostic] DOM da competição não ficou disponível dentro do prazo:', error.message);
+        }
+    }
+
+    async dismissCookieBanner(page) {
+        try {
+            const result = await page.evaluate(() => {
+                const banner = document.querySelector('.bannerCookieWarning');
+                if (!banner) return { found: false, dismissed: false };
+                const candidates = [...banner.querySelectorAll('button, a, input[type="button"], input[type="submit"]')];
+                const consent = candidates.find(element => /aceitar|aceitar todos|accept|allow|concordo|consent/i.test(element.innerText || element.value || ''));
+                if (!consent) return { found: true, dismissed: false };
+                consent.click();
+                return { found: true, dismissed: true, label: (consent.innerText || consent.value || '').trim() };
+            });
+            console.log(`[FPF diagnostic] cookie banner=${result.found ? 'encontrado' : 'não encontrado'} dismissed=${result.dismissed ? 'sim' : 'não'}`);
+            if (result.dismissed) await page.waitForTimeout(250);
+        } catch (error) {
+            console.warn('[FPF diagnostic] não foi possível fechar o banner de cookies:', error.message);
         }
     }
 

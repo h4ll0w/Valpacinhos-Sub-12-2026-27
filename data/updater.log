@@ -1,0 +1,42 @@
+2026-11-01 08:41:57,779 - INFO - Starting ZONA-NORTE data update cycle
+2026-11-01 08:41:57,779 - INFO - No valid cache found, fetching fresh data
+2026-11-01 08:41:57,779 - INFO - Attempting to fetch data from FPF website
+2026-11-01 08:41:58,367 - INFO - Successfully fetched data from FPF website
+2026-11-01 08:41:58,368 - INFO - Parsing FPF HTML for ZONA-NORTE data
+2026-11-01 08:41:58,368 - INFO - Using fallback data
+2026-11-01 08:41:58,369 - INFO - Loaded fallback data from index.json
+2026-11-01 08:41:58,372 - INFO - Saved data to cache
+2026-11-01 08:41:58,374 - INFO - Created backup: zonanorte-index-backup-20261101_084158.json
+2026-11-01 08:41:58,376 - INFO - Data is unchanged, skipping update
+2026-11-01 08:41:58,376 - INFO - Update cycle completed with no changes
+2026-11-01 08:42:13,775 - INFO - Starting ZONA-NORTE data update cycle
+2026-11-01 08:42:13,783 - INFO - Loaded data from cache
+2026-11-01 08:42:13,783 - INFO - Using cached data as starting point
+2026-11-01 08:42:13,785 - INFO - Saved data to cache
+2026-11-01 08:42:13,787 - INFO - Created backup: zonanorte-index-backup-20261101_084213.json
+2026-11-01 08:42:13,788 - INFO - Data is unchanged, skipping update
+2026-11-01 08:42:13,788 - INFO - Update cycle completed with no changes
+⚠ Update completed with no changes or errors
+2026-11-01 08:43:24,830 - INFO - Starting ZONA-NORTE data update cycle
+2026-11-01 08:43:24,839 - INFO - Loaded data from cache
+2026-11-01 08:43:24,839 - INFO - Using cached data as starting point
+2026-11-01 08:43:24,840 - INFO - Saved data to cache
+2026-11-01 08:43:24,842 - INFO - Created backup: zonanorte-index-backup-20261101_084324.json
+2026-11-01 08:43:24,844 - INFO - Data is unchanged, skipping update
+2026-11-01 08:43:24,845 - INFO - Update cycle completed with no changes
+2026-11-01 08:43:35,137 - INFO - Starting ZONA-NORTE data update cycle
+2026-11-01 08:43:35,147 - INFO - Loaded data from cache
+2026-11-01 08:43:35,147 - INFO - Using cached data as starting point
+2026-11-01 08:43:35,149 - INFO - Saved data to cache
+2026-11-01 08:43:35,151 - INFO - Created backup: zonanorte-index-backup-20261101_084335.json
+2026-11-01 08:43:35,152 - INFO - Data is unchanged, skipping update
+2026-11-01 08:43:35,152 - INFO - Update cycle completed with no changes
+⚠ Update completed with no changes or errors
+2026-11-01 08:44:35,784 - INFO - Starting ZONA-NORTE data update cycle
+2026-11-01 08:44:35,795 - INFO - Loaded data from cache
+2026-11-01 08:44:35,796 - INFO - Using cached data as starting point
+2026-11-01 08:44:35,798 - INFO - Saved data to cache
+2026-11-01 08:44:35,800 - INFO - Created backup: zonanorte-index-backup-20261101_084435.json
+2026-11-01 08:44:35,801 - INFO - Data is unchanged, skipping update
+2026-11-01 08:44:35,801 - INFO - Update cycle completed with no changes
+⚠ Update completed with no changes or errors

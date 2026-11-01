@@ -241,6 +241,7 @@ class ZONA_NORTE_Data_Fetcher {
         console.log(`[FPF diagnostic] jornada selecionada na página: ${selectedJornada ?? 'não identificada'}`);
         let teams = [];
         const matches = [];
+        let successfulFixtureCount = 0;
 
         // The competition page itself contains the current classification
         // and played games. Prefer it because Cloudflare may challenge the
@@ -262,19 +263,28 @@ class ZONA_NORTE_Data_Fetcher {
             try {
                 const fixtureUrl = `https://resultados.fpf.pt/Competition/GetClassificationAndMatchesByFixture?fixtureId=${fixtureIds[i]}`;
                 const fixtureHtml = await requestText(fixtureUrl);
-                if (!teams.length) teams = this.parseClassification(fixtureHtml);
+                let fixtureTeams = [];
+                try { fixtureTeams = this.parseClassification(fixtureHtml); } catch (error) {
+                    console.warn(`[FPF diagnostic] fixture=${fixtureIds[i]} sem classificação válida: ${error.message}`);
+                }
+                if (!teams.length && fixtureTeams.length) teams = fixtureTeams;
                 // The competition page labels each fixture link with the
                 // jornada number. Prefer that explicit mapping. Only inspect
                 // the response as a fallback; never use the array position.
                 const jornada = linksToFetch[i]?.jornada ?? this.extractJornada(fixtureHtml);
                 const fixtureMatches = this.parseMatches(fixtureHtml);
                 console.log(`[FPF diagnostic] fixture=${fixtureIds[i]} jornada=${jornada ?? 'não identificada'} jogos=${fixtureMatches.length}`);
+                if (fixtureTeams.length || fixtureMatches.length) successfulFixtureCount++;
                 fixtureMatches.forEach(match => { match.jornada = jornada; matches.push(match); });
             } catch (error) {
                 console.warn(`Could not load fixture ${fixtureIds[i]}:`, error.message);
             }
         }
         if (!teams.length) throw new Error('No classification data was returned for ZONA-NORTE');
+        const expectedFixtureCount = linksToFetch.filter(link => link.jornada != null).length;
+        if (expectedFixtureCount > 0 && successfulFixtureCount < expectedFixtureCount) {
+            throw new Error(`Dados incompletos da FPF: ${successfulFixtureCount}/${expectedFixtureCount} jornadas foram obtidas`);
+        }
         const uniqueMatchMap = new Map();
         for (const match of matches) {
             const baseKey = `${match.home}|${match.homeGoals}|${match.away}|${match.awayGoals}|${match.date || ''}`;

@@ -65,8 +65,9 @@ jobs:
           git add index.html zonanorte-championship-index.json
           git commit -m "Atualizar resultados FPF"
           # O updater escreve logs/cache locais que não fazem parte do deploy.
-          # Deixá-los modificados impede o pull --rebase no runner.
-          git restore --worktree -- data/update.log data/updater.log data/zonanorte-cache.json 2>/dev/null || true
+          # O runner é descartável: limpar todos os tracked restantes evita
+          # que qualquer artefacto auxiliar bloqueie o pull --rebase.
+          git reset --hard HEAD
           for attempt in 1 2 3; do
             if git pull --rebase origin main && git push origin HEAD:main; then
               exit 0

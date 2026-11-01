@@ -16,7 +16,7 @@ class ZONA_NORTE_Data_Fetcher {
         try {
             // Try with different headers and options to bypass potential blocking
             const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 15000);
+            const timer = setTimeout(() => controller.abort(), 5000);
             const response = await fetch(this.baseUrl, {
                 method: 'GET',
                 headers: {
@@ -47,6 +47,8 @@ class ZONA_NORTE_Data_Fetcher {
 
         } catch (error) {
             console.warn('Failed to fetch from website:', error.message);
+            // Small backoff to avoid 429 rate-limit loops
+            await new Promise(r => setTimeout(r, 2000));
             return await this.fetchFromBrowser();
         }
     }

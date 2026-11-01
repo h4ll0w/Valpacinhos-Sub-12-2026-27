@@ -64,6 +64,7 @@ jobs:
         run: |
           git add index.html zonanorte-championship-index.json
           git commit -m "Atualizar resultados FPF"
+          git push
           for attempt in 1 2 3; do
             if git pull --rebase origin main && git push origin HEAD:main; then
               exit 0

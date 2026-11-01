@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: atualizar-fpf-main
@@ -81,3 +83,33 @@ jobs:
       - name: Sem alterações
         if: steps.changes.outputs.changed == 'false'
         run: echo "Não foram encontradas alterações nos resultados."
+
+  publicar-pages:
+    needs: atualizar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Obter código publicado
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Preparar artefacto do site
+        run: |
+          mkdir _site
+          cp index.html zonanorte-championship-index.json _site/
+          touch _site/.nojekyll
+
+      - name: Carregar artefacto do Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

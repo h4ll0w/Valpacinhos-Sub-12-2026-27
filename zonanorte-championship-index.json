@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "source": "fpf_website",
+    "source": "fpf_browser",
     "competitionId": "30614",
     "seasonId": "106",
     "zona": "ZONA-NORTE",
-    "lastUpdated": "2026-11-01T14:53:07.406Z",
-    "generatedAt": "2026-11-01T14:53:07.406Z",
+    "lastUpdated": "2026-11-01T17:38:33.898Z",
+    "generatedAt": "2026-11-01T17:38:33.931Z",
     "championship": {
       "name": "Campeonato Distrital Sub-12 (Futebol 9 - Zona Norte) • 2026/2027",
       "season": "2026/2027",
@@ -28,7 +28,7 @@
       "points": 9
     },
     {
-      "name": "Ade Gera&#231;&#227;o Talentos \"A\"",
+      "name": "Ade Geração Talentos \"A\"",
       "position": 2,
       "played": 2,
       "won": 2,
@@ -126,7 +126,7 @@
   ],
   "matches": [
     {
-      "jornada": 2,
+      "jornada": 3,
       "homeTeam": "Gd Boticas",
       "homeGoals": 2,
       "awayTeam": "Aud Conc. Sabrosa \"C\"",
@@ -134,7 +134,7 @@
       "date": "2026-10-31"
     },
     {
-      "jornada": 2,
+      "jornada": 3,
       "homeTeam": "Clube Desportivo Valpacinhos",
       "homeGoals": 2,
       "awayTeam": "Gd Vilar Perdizes",
@@ -142,7 +142,7 @@
       "date": "2026-10-31"
     },
     {
-      "jornada": 2,
+      "jornada": 3,
       "homeTeam": "Ad Flaviense",
       "homeGoals": 3,
       "awayTeam": "Vidago Fc",
@@ -165,7 +165,7 @@
       "position": 1
     },
     {
-      "team": "Ade Gera&#231;&#227;o Talentos \"A\"",
+      "team": "Ade Geração Talentos \"A\"",
       "played": 2,
       "won": 2,
       "drawn": 0,

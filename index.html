@@ -155,26 +155,31 @@
     }
 
     async function loadGoalEntries() {
-      const { data, error } = await supabaseClient
+      const { data: entries, error: entriesError } = await supabaseClient
         .from("goal_entries")
-        .select(`
-          id,
-          player_id,
-          match_key,
-          goals,
-          created_at,
-          players (
-            name,
-            shirt_number
-          )
-        `)
+        .select("id, player_id, match_key, goals, created_at")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error(error);
+      if (entriesError) {
+        console.error(entriesError);
         return;
       }
-      scorerEntries = data || [];
+
+      // Fetch all players to join
+      const { data: playersData, error: playersError } = await supabaseClient
+        .from("players")
+        .select("id, name, shirt_number");
+
+      if (playersError) {
+        console.error(playersError);
+        return;
+      }
+
+      const playersMap = new Map((playersData || []).map(p => [p.id, p]));
+      scorerEntries = (entries || []).map(e => ({
+        ...e,
+        players: playersMap.get(e.player_id) || null
+      }));
     }
 
     function renderRoster() {

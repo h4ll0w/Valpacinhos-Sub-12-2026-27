@@ -271,8 +271,27 @@
       // Round filter
       const roundFilter = document.querySelector("#round-filter");
       const rounds = [...new Set(matches.map(m => m.jornada).filter(j => Number.isInteger(j) && j > 0))].sort((a, b) => a - b);
+
+      // Find next Jornada with unplayed matches (closest future date)
+      const now = new Date();
+      let nextRound = null;
+      for (const r of rounds) {
+        const roundMatches = matches.filter(m => m.jornada === r);
+        const unplayed = roundMatches.some(m => m.resultadoCasa === null || m.resultadoFora === null);
+        if (unplayed) {
+          const dates = roundMatches.map(m => m.data ? new Date(m.data) : null).filter(d => d);
+          const futureDates = dates.filter(d => d >= now);
+          if (futureDates.length > 0 || unplayed) {
+            nextRound = String(r);
+            break;
+          }
+        }
+      }
+      // Fallback: latest played round
       const latestRound = rounds.length ? String(rounds[rounds.length - 1]) : null;
-      if (selectedRound === "latest" || !rounds.some(r => String(r) === String(selectedRound))) selectedRound = latestRound;
+      if (selectedRound === "latest" || !rounds.some(r => String(r) === String(selectedRound))) {
+        selectedRound = nextRound || latestRound;
+      }
       roundFilter.hidden = !rounds.length;
       roundFilter.innerHTML = rounds.map(round => `<option value="${round}">Jornada ${round}</option>`).join("");
       roundFilter.value = String(selectedRound || "");

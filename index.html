@@ -61,7 +61,7 @@
     }
 
     function escapeHtml(value) {
-      return value.replace(/[&<>"']/g, char => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "'" }[char]));
+      return value.replace(/[&<>"']/g, char => ({ "&": "&", "<": "<", ">": ">", '"': '"', "'": "'" }[char]));
     }
 
     // Initialize zone selector

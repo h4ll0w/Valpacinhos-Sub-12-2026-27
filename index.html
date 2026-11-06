@@ -155,15 +155,17 @@
     }
 
     async function loadGoalEntries() {
+      console.log("Loading goal entries...");
       const { data: entries, error: entriesError } = await supabaseClient
         .from("goal_entries")
         .select("id, player_id, match_key, goals, created_at")
         .order("created_at", { ascending: false });
 
       if (entriesError) {
-        console.error(entriesError);
+        console.error("Goal entries error:", entriesError);
         return;
       }
+      console.log("Goal entries:", entries);
 
       // Fetch all players to join
       const { data: playersData, error: playersError } = await supabaseClient
@@ -171,15 +173,17 @@
         .select("id, name, shirt_number");
 
       if (playersError) {
-        console.error(playersError);
+        console.error("Players error:", playersError);
         return;
       }
+      console.log("Players:", playersData);
 
       const playersMap = new Map((playersData || []).map(p => [p.id, p]));
       scorerEntries = (entries || []).map(e => ({
         ...e,
         players: playersMap.get(e.player_id) || null
       }));
+      console.log("Scorer entries after join:", scorerEntries);
     }
 
     function renderRoster() {

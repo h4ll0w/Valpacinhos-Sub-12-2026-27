@@ -81,30 +81,30 @@
         // Load teams for this zone
         const { data: teamsData, error: teamsError } = await supabaseClient
           .from("tblequipas")
-          .select("idequipa, nmequipa, nmcurto, idestadio")
-          .eq("idzona", selectedZoneId)
-          .eq("activa", true)
-          .order("nmequipa");
+          .select("IdEquipa, NmEquipa, NmCurto, IdEstadio")
+          .eq("IdZona", selectedZoneId)
+          .eq("Activa", true)
+          .order("NmEquipa");
 
         if (teamsError) throw teamsError;
         teamsMap.clear();
-        (teamsData || []).forEach(t => teamsMap.set(t.idequipa, { name: t.nmequipa, short: t.nmcurto, stadiumId: t.idestadio }));
+        (teamsData || []).forEach(t => teamsMap.set(t.IdEquipa, { name: t.NmEquipa, short: t.NmCurto, stadiumId: t.IdEstadio }));
 
         // Load stadiums
         const { data: stadiumsData, error: stadiumsError } = await supabaseClient
           .from("tblestadios")
-          .select("idestadio, nmeEstadio");
+          .select("IdEstadio, NmEstadio");
 
         if (stadiumsError) throw stadiumsError;
         stadiumsMap.clear();
-        (stadiumsData || []).forEach(s => stadiumsMap.set(s.idestadio, s.nmeEstadio));
+        (stadiumsData || []).forEach(s => stadiumsMap.set(s.IdEstadio, s.NmEstadio));
 
         // Load standings from view
         const { data: standingsData, error: standingsError } = await supabaseClient
           .from("vw_standings")
           .select("*")
-          .eq("idzona", selectedZoneId)
-          .order("position");
+          .eq("IdZona", selectedZoneId)
+          .order("Position");
 
         if (standingsError) throw standingsError;
         standings = standingsData || [];
@@ -113,21 +113,21 @@
         const { data: matchesData, error: matchesError } = await supabaseClient
           .from("tblcalendario")
           .select("*")
-          .eq("idzona", selectedZoneId)
-          .order("jornada", { ascending: true })
-          .order("data", { ascending: true });
+          .eq("IdZona", selectedZoneId)
+          .order("Jornada", { ascending: true })
+          .order("Data", { ascending: true });
 
         if (matchesError) throw matchesError;
         matches = (matchesData || []).map(m => ({
-          id: m.idjogo,
-          jornada: m.jornada,
-          data: m.data,
-          hora: m.hora,
-          idEquipaCasa: m.idequipacasa,
-          idEquipaFora: m.idequipafO,
-          resultadoCasa: m.resultadocasa,
-          resultadoFora: m.resultadofora,
-          idEstadio: m.idestadio
+          id: m.IdJogo,
+          jornada: m.Jornada,
+          data: m.Data,
+          hora: m.Hora,
+          idEquipaCasa: m.IdEquipaCasa,
+          idEquipaFora: m.IdEquipaFora,
+          resultadoCasa: m.ResultadoCasa,
+          resultadoFora: m.ResultadoFora,
+          idEstadio: m.IdEstadio
         }));
 
         render();
@@ -248,16 +248,16 @@
     function render() {
       // Render standings
       const ordered = standings.map((t, i) => ({
-        name: t.nmequipa,
-        played: t.played,
-        won: t.won,
-        drawn: t.drawn,
-        lost: t.lost,
-        gf: t.goalsfor,
-        ga: t.goalsagainst,
-        gd: t.goaldifference,
-        points: t.points,
-        position: t.position
+        name: t.NmEquipa,
+        played: t.Played,
+        won: t.Won,
+        drawn: t.Drawn,
+        lost: t.Lost,
+        gf: t.GoalsFor,
+        ga: t.GoalsAgainst,
+        gd: t.GoalDifference,
+        points: t.Points,
+        position: t.Position
       }));
 
       document.querySelector("#standings").innerHTML = ordered.map((t, i) =>

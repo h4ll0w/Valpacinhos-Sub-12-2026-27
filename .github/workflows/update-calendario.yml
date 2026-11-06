@@ -1,0 +1,96 @@
+name: Update Calendario (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Confirm you have run convert_calendario.py locally and want to push tblCalendario_supabase.csv to Supabase'
+        required: true
+        type: boolean
+
+jobs:
+  update-calendario:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify CSV exists
+        run: |
+          if [ ! -f "data/tblCalendario_supabase.csv" ]; then
+            echo "❌ data/tblCalendario_supabase.csv not found"
+            echo "Run locally: python3 data/convert_calendario.py"
+            exit 1
+          fi
+          echo "✅ CSV found"
+          head -5 data/tblCalendario_supabase.csv
+
+      - name: Install Python dependencies
+        run: pip install supabase python-dotenv
+
+      - name: Update tblCalendario in Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 << 'PYEOF'
+          import os
+          import csv
+          from supabase import create_client
+
+          url = os.environ["SUPABASE_URL"]
+          key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+          supabase = create_client(url, key)
+
+          # Read CSV
+          rows = []
+          with open("data/tblCalendario_supabase.csv", "r", encoding="utf-8-sig") as f:
+              reader = csv.DictReader(f, delimiter=";")
+              for row in reader:
+                  # Convert empty strings to None for nullable fields
+                  cleaned = {}
+                  for k, v in row.items():
+                      if v == "":
+                          cleaned[k] = None
+                      elif k in ["Jornada", "IdEquipaCasa", "IdEquipaFora", "IdEstadio", "IdZona"]:
+                          cleaned[k] = int(v)
+                      elif k in ["ResultadoCasa", "ResultadoFora"]:
+                          cleaned[k] = int(v) if v else None
+                      else:
+                          cleaned[k] = v
+                  rows.append(cleaned)
+
+          print(f"Read {len(rows)} matches from CSV")
+
+          # Upsert each match (by IdJogo would be ideal, but CSV doesn't have it - use unique constraint on Jornada+Equipas)
+          # Since IdJogo is SERIAL, we need to match existing records
+          # Strategy: delete all for this season, then insert fresh
+          # But safer: upsert on (Jornada, IdEquipaCasa, IdEquipaFora, IdZona)
+          
+          # First, get existing matches to map
+          existing = supabase.table("tblCalendario").select("IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona").execute()
+          existing_map = {}
+          for m in existing.data or []:
+              key = (m["Jornada"], m["IdEquipaCasa"], m["IdEquipaFora"], m["IdZona"])
+              existing_map[key] = m["IdJogo"]
+
+          # Prepare upserts
+          to_upsert = []
+          for row in rows:
+              key = (row["Jornada"], row["IdEquipaCasa"], row["IdEquipaFora"], row["IdZona"])
+              if key in existing_map:
+                  row["IdJogo"] = existing_map[key]
+              to_upsert.append(row)
+
+          # Upsert in batches
+          batch_size = 50
+          for i in range(0, len(to_upsert), batch_size):
+              batch = to_upsert[i:i+batch_size]
+              result = supabase.table("tblCalendario").upsert(batch, on_conflict="Jornada,IdEquipaCasa,IdEquipaFora,IdZona").execute()
+              print(f"Batch {i//batch_size + 1}: {len(batch)} rows upserted")
+
+          print("✅ tblCalendario updated successfully")
+          PYEOF
+
+      - name: Summary
+        run: echo "✅ tblCalendario updated in Supabase. Refresh index.html to see changes."

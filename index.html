@@ -272,22 +272,38 @@
       const roundFilter = document.querySelector("#round-filter");
       const rounds = [...new Set(matches.map(m => m.jornada).filter(j => Number.isInteger(j) && j > 0))].sort((a, b) => a - b);
 
-      // Find next Jornada with unplayed matches (closest future date)
+      // Find Jornada with closest future date (or most recent past if all past)
       const now = new Date();
       let nextRound = null;
+      let minDiff = Infinity;
       for (const r of rounds) {
         const roundMatches = matches.filter(m => m.jornada === r);
-        const unplayed = roundMatches.some(m => m.resultadoCasa === null || m.resultadoFora === null);
-        if (unplayed) {
+        const dates = roundMatches.map(m => m.data ? new Date(m.data) : null).filter(d => d);
+        if (dates.length === 0) continue;
+        // Use earliest date in the round
+        const roundDate = new Date(Math.min(...dates.map(d => d.getTime())));
+        const diff = roundDate - now;
+        if (diff >= 0 && diff < minDiff) {
+          minDiff = diff;
+          nextRound = String(r);
+        }
+      }
+      // If all rounds are past, pick the most recent
+      if (!nextRound) {
+        let maxDiff = -Infinity;
+        for (const r of rounds) {
+          const roundMatches = matches.filter(m => m.jornada === r);
           const dates = roundMatches.map(m => m.data ? new Date(m.data) : null).filter(d => d);
-          const futureDates = dates.filter(d => d >= now);
-          if (futureDates.length > 0 || unplayed) {
+          if (dates.length === 0) continue;
+          const roundDate = new Date(Math.min(...dates.map(d => d.getTime())));
+          const diff = now - roundDate;
+          if (diff >= 0 && diff < maxDiff) {
+            maxDiff = diff;
             nextRound = String(r);
-            break;
           }
         }
       }
-      // Fallback: latest played round
+      // Fallback: latest round
       const latestRound = rounds.length ? String(rounds[rounds.length - 1]) : null;
       if (selectedRound === "latest" || !rounds.some(r => String(r) === String(selectedRound))) {
         selectedRound = nextRound || latestRound;

@@ -131,9 +131,9 @@
           idEstadio: m.IdEstadio
         }));
 
+        await loadGoalEntries();
         render();
         renderPlayerOptions();
-        await loadGoalEntries();
 
       } catch (error) {
         console.error("Erro ao carregar dados da zona:", error);

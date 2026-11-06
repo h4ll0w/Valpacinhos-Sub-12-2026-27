@@ -133,6 +133,7 @@
 
         render();
         renderPlayerOptions();
+        await loadGoalEntries();
 
       } catch (error) {
         console.error("Erro ao carregar dados da zona:", error);

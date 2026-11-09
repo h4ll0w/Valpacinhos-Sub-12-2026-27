@@ -41,14 +41,17 @@ jobs:
           url = os.environ["SUPABASE_URL"].rstrip('/')
           key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
-          # Use only Authorization header for service role (apikey can cause issues with writes)
-          headers = {
+          # Use both headers for GET (required), only Authorization for POST (apikey can cause 401 on writes)
+          headers_write = {
               "Authorization": f"Bearer {key}",
               "Content-Type": "application/json",
               "Prefer": "resolution=merge-duplicates,return=minimal"
           }
-          # For GET, add Accept header
-          get_headers = {**headers, "Accept": "application/json"}
+          headers_read = {
+              "Authorization": f"Bearer {key}",
+              "apikey": key,
+              "Accept": "application/json"
+          }
 
           # Read CSV
           rows = []
@@ -73,7 +76,7 @@ jobs:
           with httpx.Client(timeout=30.0) as client:
               resp = client.get(
                   f"{url}/rest/v1/tblcalendario",
-                  headers=get_headers,
+                  headers=headers_read,
                   params={"select": "IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona"}
               )
               resp.raise_for_status()
@@ -101,7 +104,7 @@ jobs:
                   batch = to_upsert[i:i+batch_size]
                   resp = client.post(
                       f"{url}/rest/v1/tblcalendario",
-                      headers=headers,
+                      headers=headers_write,
                       params={"on_conflict": "IdJogo"},
                       json=batch
                   )

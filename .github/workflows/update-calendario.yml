@@ -44,14 +44,12 @@ jobs:
           url = os.environ["SUPABASE_URL"].strip().rstrip("/")
           key = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip()
 
-            if not key:
+          if not key:
               raise SystemExit(
                   "❌ SUPABASE_SERVICE_ROLE_KEY is empty or missing. Check the repo secret name "
                   "matches the workflow env: block exactly."
               )
-          # Sanity check: legacy JWT keys carry a "role" claim. Make sure we are
-          # holding the service_role key and not the anon key (anon can usually
-          # READ public tables but gets 401 on WRITES -- exactly what we saw).
+
           def jwt_role(token):
               try:
                   payload = token.split(".")[1]

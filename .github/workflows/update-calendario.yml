@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Confirm you have run convert_calendario.py locally and want to push tblCalendario_supabase.csv to Supabase'
+        description: 'Confirm you want to convert the calendario CSVs and push them to Supabase'
         required: true
         type: boolean
 
@@ -15,18 +15,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Convert calendario CSV
+        run: |
+          set -o pipefail
+          python3 data/convert_calendario.py | tee convert.log
+          if grep -q "^Skipped: [1-9]" convert.log; then
+            echo "❌ Some matches were skipped (team names not found). Fix the source CSVs and re-run."
+            exit 1
+          fi
+
       - name: Verify CSV exists
         run: |
           if [ ! -f "data/tblCalendario_supabase.csv" ]; then
-            echo "❌ data/tblCalendario_supabase.csv not found"
-            echo "Run locally: python3 data/convert_calendario.py"
+            echo "❌ data/tblCalendario_supabase.csv was not generated"
             exit 1
           fi
-          echo "✅ CSV found"
+          echo "✅ CSV generated"
           head -5 data/tblCalendario_supabase.csv
 
       - name: Install Python dependencies
-        run: pip install httpx python-dotenv
+        run: pip install httpx
 
       - name: Update tblCalendario in Supabase
         env:

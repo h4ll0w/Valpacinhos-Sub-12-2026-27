@@ -26,7 +26,7 @@ jobs:
           head -5 data/tblCalendario_supabase.csv
 
       - name: Install Python dependencies
-        run: pip install supabase python-dotenv
+        run: pip install httpx python-dotenv
 
       - name: Update tblCalendario in Supabase
         env:
@@ -36,18 +36,23 @@ jobs:
           python3 << 'PYEOF'
           import os
           import csv
-          from supabase import create_client
+          import httpx
 
-          url = os.environ["SUPABASE_URL"]
+          url = os.environ["SUPABASE_URL"].rstrip('/')
           key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-          supabase = create_client(url, key)
+
+          headers = {
+              "apikey": key,
+              "Authorization": f"Bearer {key}",
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates,return=minimal"
+          }
 
           # Read CSV
           rows = []
           with open("data/tblCalendario_supabase.csv", "r", encoding="utf-8-sig") as f:
               reader = csv.DictReader(f, delimiter=";")
               for row in reader:
-                  # Convert empty strings to None for nullable fields
                   cleaned = {}
                   for k, v in row.items():
                       if v == "":
@@ -62,13 +67,18 @@ jobs:
 
           print(f"Read {len(rows)} matches from CSV")
 
-          # Upsert on IdJogo (primary key). Existing records get their IdJogo set,
-          # new records omit IdJogo to let the database auto-generate it.
-
           # First, get existing matches to map
-          existing = supabase.table("tblcalendario").select("IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona").execute()
+          with httpx.Client(timeout=30.0) as client:
+              resp = client.get(
+                  f"{url}/rest/v1/tblcalendario",
+                  headers={**headers, "Accept": "application/json"},
+                  params={"select": "IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona"}
+              )
+              resp.raise_for_status()
+              existing = resp.json()
+
           existing_map = {}
-          for m in existing.data or []:
+          for m in existing:
               key = (m["Jornada"], m["IdEquipaCasa"], m["IdEquipaFora"], m["IdZona"])
               existing_map[key] = m["IdJogo"]
 
@@ -79,15 +89,22 @@ jobs:
               if key in existing_map:
                   row["IdJogo"] = existing_map[key]
               else:
-                  row["IdJogo"] = None  # Let DB auto-generate for new records
+                  row.pop("IdJogo", None)  # Remove IdJogo for new records (auto-generated)
               to_upsert.append(row)
 
           # Upsert in batches using IdJogo as conflict target
           batch_size = 50
-          for i in range(0, len(to_upsert), batch_size):
-              batch = to_upsert[i:i+batch_size]
-              result = supabase.table("tblcalendario").upsert(batch, on_conflict="IdJogo").execute()
-              print(f"Batch {i//batch_size + 1}: {len(batch)} rows upserted")
+          with httpx.Client(timeout=60.0) as client:
+              for i in range(0, len(to_upsert), batch_size):
+                  batch = to_upsert[i:i+batch_size]
+                  resp = client.post(
+                      f"{url}/rest/v1/tblcalendario",
+                      headers=headers,
+                      params={"on_conflict": "IdJogo"},
+                      json=batch
+                  )
+                  resp.raise_for_status()
+                  print(f"Batch {i//batch_size + 1}: {len(batch)} rows upserted")
 
           print("✅ tblcalendario updated successfully")
           PYEOF

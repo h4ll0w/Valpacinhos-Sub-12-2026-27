@@ -34,23 +34,43 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           python3 << 'PYEOF'
-          import os
+          import base64
           import csv
+          import json
+          import os
+
           import httpx
 
-          url = os.environ["SUPABASE_URL"].rstrip('/')
-          key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+          url = os.environ["SUPABASE_URL"].strip().rstrip("/")
+          key = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip()
 
-          # Use both headers for GET (required), only Authorization for POST (apikey can cause 401 on writes)
-          headers_write = {
+          # Sanity check: legacy JWT keys carry a "role" claim. Make sure we are
+          # holding the service_role key and not the anon key (anon can usually
+          # READ public tables but gets 401 on WRITES -- exactly what we saw).
+          def jwt_role(token):
+              try:
+                  payload = token.split(".")[1]
+                  payload += "=" * (-len(payload) % 4)
+                  return json.loads(base64.urlsafe_b64decode(payload)).get("role")
+              except Exception:
+                  return None
+
+          if key.startswith("eyJ"):
+              role = jwt_role(key)
+              print(f"Key role: {role}")
+              if role != "service_role":
+                  raise SystemExit(
+                      f"❌ SUPABASE_SERVICE_ROLE_KEY has role '{role}', expected 'service_role'. "
+                      "Update the GitHub secret with the service_role key from Supabase "
+                      "(Project Settings > API Keys)."
+                  )
+
+          # Same headers for reads and writes. PostgREST accepts both apikey and
+          # Authorization; sending both is the standard Supabase pattern.
+          headers = {
+              "apikey": key,
               "Authorization": f"Bearer {key}",
               "Content-Type": "application/json",
-              "Prefer": "resolution=merge-duplicates,return=minimal"
-          }
-          headers_read = {
-              "Authorization": f"Bearer {key}",
-              "apikey": key,
-              "Accept": "application/json"
           }
 
           # Read CSV
@@ -65,51 +85,74 @@ jobs:
                       elif k in ["Jornada", "IdEquipaCasa", "IdEquipaFora", "IdEstadio", "IdZona"]:
                           cleaned[k] = int(v)
                       elif k in ["ResultadoCasa", "ResultadoFora"]:
-                          cleaned[k] = int(v) if v else None
+                          cleaned[k] = int(v)
                       else:
                           cleaned[k] = v
                   rows.append(cleaned)
 
           print(f"Read {len(rows)} matches from CSV")
 
-          # First, get existing matches to map
+          # Fetch existing matches to map natural key -> IdJogo
           with httpx.Client(timeout=30.0) as client:
               resp = client.get(
                   f"{url}/rest/v1/tblcalendario",
-                  headers=headers_read,
-                  params={"select": "IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona"}
+                  headers={**headers, "Accept": "application/json"},
+                  params={
+                      "select": "IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona",
+                      "limit": "10000",
+                  },
               )
-              resp.raise_for_status()
+              if resp.status_code >= 400:
+                  raise SystemExit(f"❌ GET failed: HTTP {resp.status_code}: {resp.text}")
               existing = resp.json()
 
           existing_map = {}
           for m in existing:
-              key = (m["Jornada"], m["IdEquipaCasa"], m["IdEquipaFora"], m["IdZona"])
-              existing_map[key] = m["IdJogo"]
+              k = (m["Jornada"], m["IdEquipaCasa"], m["IdEquipaFora"], m["IdZona"])
+              existing_map[k] = m["IdJogo"]
 
-          # Prepare upserts - only set IdJogo for existing records
-          to_upsert = []
+          # Split into two uniform payloads. PostgREST rejects a bulk request where
+          # objects have different key sets, so existing rows (with IdJogo) and new
+          # rows (without IdJogo, auto-generated) must be sent separately.
+          updates = []
+          inserts = []
           for row in rows:
-              key = (row["Jornada"], row["IdEquipaCasa"], row["IdEquipaFora"], row["IdZona"])
-              if key in existing_map:
-                  row["IdJogo"] = existing_map[key]
+              k = (row["Jornada"], row["IdEquipaCasa"], row["IdEquipaFora"], row["IdZona"])
+              if k in existing_map:
+                  row["IdJogo"] = existing_map[k]
+                  updates.append(row)
               else:
-                  row.pop("IdJogo", None)  # Remove IdJogo for new records (auto-generated)
-              to_upsert.append(row)
+                  row.pop("IdJogo", None)
+                  inserts.append(row)
 
-          # Upsert in batches using IdJogo as conflict target
+          print(f"Updates: {len(updates)} | Inserts: {len(inserts)}")
+
+          def send(client, batch, prefer, params=None):
+              resp = client.post(
+                  f"{url}/rest/v1/tblcalendario",
+                  headers={**headers, "Prefer": prefer},
+                  params=params or {},
+                  json=batch,
+              )
+              if resp.status_code >= 400:
+                  raise SystemExit(f"❌ POST failed: HTTP {resp.status_code}: {resp.text}")
+
           batch_size = 50
           with httpx.Client(timeout=60.0) as client:
-              for i in range(0, len(to_upsert), batch_size):
-                  batch = to_upsert[i:i+batch_size]
-                  resp = client.post(
-                      f"{url}/rest/v1/tblcalendario",
-                      headers=headers_write,
+              for i in range(0, len(updates), batch_size):
+                  batch = updates[i:i + batch_size]
+                  send(
+                      client,
+                      batch,
+                      "resolution=merge-duplicates,return=minimal",
                       params={"on_conflict": "IdJogo"},
-                      json=batch
                   )
-                  resp.raise_for_status()
-                  print(f"Batch {i//batch_size + 1}: {len(batch)} rows upserted")
+                  print(f"Update batch {i // batch_size + 1}: {len(batch)} rows")
+
+              for i in range(0, len(inserts), batch_size):
+                  batch = inserts[i:i + batch_size]
+                  send(client, batch, "return=minimal")
+                  print(f"Insert batch {i // batch_size + 1}: {len(batch)} rows")
 
           print("✅ tblcalendario updated successfully")
           PYEOF

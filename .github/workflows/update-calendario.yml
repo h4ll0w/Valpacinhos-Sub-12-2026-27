@@ -68,7 +68,7 @@ jobs:
           # But safer: upsert on (Jornada, IdEquipaCasa, IdEquipaFora, IdZona)
           
           # First, get existing matches to map
-          existing = supabase.table("tblCalendario").select("IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona").execute()
+          existing = supabase.table("tblcalendario").select("IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona").execute()
           existing_map = {}
           for m in existing.data or []:
               key = (m["Jornada"], m["IdEquipaCasa"], m["IdEquipaFora"], m["IdZona"])
@@ -86,10 +86,10 @@ jobs:
           batch_size = 50
           for i in range(0, len(to_upsert), batch_size):
               batch = to_upsert[i:i+batch_size]
-              result = supabase.table("tblCalendario").upsert(batch, on_conflict="Jornada,IdEquipaCasa,IdEquipaFora,IdZona").execute()
+              result = supabase.table("tblcalendario").upsert(batch, on_conflict="Jornada,IdEquipaCasa,IdEquipaFora,IdZona").execute()
               print(f"Batch {i//batch_size + 1}: {len(batch)} rows upserted")
 
-          print("✅ tblCalendario updated successfully")
+          print("✅ tblcalendario updated successfully")
           PYEOF
 
       - name: Summary

@@ -41,12 +41,14 @@ jobs:
           url = os.environ["SUPABASE_URL"].rstrip('/')
           key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
+          # Use only Authorization header for service role (apikey can cause issues with writes)
           headers = {
-              "apikey": key,
               "Authorization": f"Bearer {key}",
               "Content-Type": "application/json",
               "Prefer": "resolution=merge-duplicates,return=minimal"
           }
+          # For GET, add Accept header
+          get_headers = {**headers, "Accept": "application/json"}
 
           # Read CSV
           rows = []
@@ -71,7 +73,7 @@ jobs:
           with httpx.Client(timeout=30.0) as client:
               resp = client.get(
                   f"{url}/rest/v1/tblcalendario",
-                  headers={**headers, "Accept": "application/json"},
+                  headers=get_headers,
                   params={"select": "IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona"}
               )
               resp.raise_for_status()

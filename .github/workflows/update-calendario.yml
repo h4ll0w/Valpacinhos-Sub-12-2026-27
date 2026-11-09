@@ -62,11 +62,9 @@ jobs:
 
           print(f"Read {len(rows)} matches from CSV")
 
-          # Upsert each match (by IdJogo would be ideal, but CSV doesn't have it - use unique constraint on Jornada+Equipas)
-          # Since IdJogo is SERIAL, we need to match existing records
-          # Strategy: delete all for this season, then insert fresh
-          # But safer: upsert on (Jornada, IdEquipaCasa, IdEquipaFora, IdZona)
-          
+          # Upsert on IdJogo (primary key). Existing records get their IdJogo set,
+          # new records omit IdJogo to let the database auto-generate it.
+
           # First, get existing matches to map
           existing = supabase.table("tblcalendario").select("IdJogo,Jornada,IdEquipaCasa,IdEquipaFora,IdZona").execute()
           existing_map = {}
@@ -74,19 +72,21 @@ jobs:
               key = (m["Jornada"], m["IdEquipaCasa"], m["IdEquipaFora"], m["IdZona"])
               existing_map[key] = m["IdJogo"]
 
-          # Prepare upserts
+          # Prepare upserts - only set IdJogo for existing records
           to_upsert = []
           for row in rows:
               key = (row["Jornada"], row["IdEquipaCasa"], row["IdEquipaFora"], row["IdZona"])
               if key in existing_map:
                   row["IdJogo"] = existing_map[key]
+              else:
+                  row["IdJogo"] = None  # Let DB auto-generate for new records
               to_upsert.append(row)
 
-          # Upsert in batches
+          # Upsert in batches using IdJogo as conflict target
           batch_size = 50
           for i in range(0, len(to_upsert), batch_size):
               batch = to_upsert[i:i+batch_size]
-              result = supabase.table("tblcalendario").upsert(batch, on_conflict="Jornada,IdEquipaCasa,IdEquipaFora,IdZona").execute()
+              result = supabase.table("tblcalendario").upsert(batch, on_conflict="IdJogo").execute()
               print(f"Batch {i//batch_size + 1}: {len(batch)} rows upserted")
 
           print("✅ tblcalendario updated successfully")

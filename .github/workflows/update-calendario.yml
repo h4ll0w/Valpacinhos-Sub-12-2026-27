@@ -44,9 +44,6 @@ jobs:
           url = os.environ["SUPABASE_URL"].strip().rstrip("/")
           key = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip()
 
-          # Sanity check: legacy JWT keys carry a "role" claim. Make sure we are
-          # holding the service_role key and not the anon key (anon can usually
-          # READ public tables but gets 401 on WRITES -- exactly what we saw).
           def jwt_role(token):
               try:
                   payload = token.split(".")[1]
@@ -55,23 +52,26 @@ jobs:
               except Exception:
                   return None
 
+          # Fail fast if the key can't bypass RLS.
+          # Secret/service_role keys can; publishable/anon keys can't.
+          if key.startswith("sb_publishable_"):
+              raise SystemExit("❌ Key is a publishable key. Use the secret key from Supabase API Keys.")
           if key.startswith("eyJ"):
               role = jwt_role(key)
               print(f"Key role: {role}")
               if role != "service_role":
-                  raise SystemExit(
-                      f"❌ SUPABASE_SERVICE_ROLE_KEY has role '{role}', expected 'service_role'. "
-                      "Update the GitHub secret with the service_role key from Supabase "
-                      "(Project Settings > API Keys)."
-                  )
+                  raise SystemExit(f"❌ Key role is '{role}', expected 'service_role'.")
+          elif not key.startswith("sb_secret_"):
+              raise SystemExit("❌ Unrecognized key format. Expected a secret or service_role key.")
 
-          # Same headers for reads and writes. PostgREST accepts both apikey and
-          # Authorization; sending both is the standard Supabase pattern.
+          # apikey is always sent. Bearer is only sent for legacy JWT keys,
+          # since new sb_secret_ keys are not JWTs.
           headers = {
               "apikey": key,
-              "Authorization": f"Bearer {key}",
               "Content-Type": "application/json",
           }
+          if key.startswith("eyJ"):
+              headers["Authorization"] = f"Bearer {key}"
 
           # Read CSV
           rows = []

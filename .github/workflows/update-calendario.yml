@@ -15,6 +15,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Update results from jornada pages
+        run: python3 data/parse_jornadas.py
+        
       - name: Convert calendario CSV
         run: |
           set -o pipefail

@@ -61,7 +61,7 @@
     }
 
     function escapeHtml(value) {
-      return String(value ?? "").replace(/[&<>"']/g, char => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[char]));
+      return value.replace(/[&<>"']/g, char => ({ "&": "&", "<": "<", ">": ">", '"': '"', "'": "'" }[char]));
     }
 
     // Convert coordinates to Google Maps URL
@@ -223,6 +223,7 @@
 
     function renderPlayerOptions() {
       const select = document.querySelector("#player");
+      const previousPlayer = select.value;
       select.innerHTML = roster.length
         ? `<option value="">Selecionar jogador</option>` +
           roster
@@ -233,6 +234,8 @@
             )
             .join("")
         : `<option value="">Não existem jogadores no plantel</option>`;
+
+      if (previousPlayer && roster.some(p => p.id === previousPlayer)) select.value = previousPlayer;
 
       select.disabled = !managerUnlocked || !roster.length;
       document.querySelector("#scorer-submit").disabled = !managerUnlocked || !roster.length;
@@ -439,14 +442,38 @@
       if (selected) select.value = selected;
     }
 
+    // Confirmation dialog (text set with textContent, so no HTML injection)
+    function showConfirmation(lines) {
+      const dialog = document.createElement("dialog");
+      dialog.style.cssText = "padding:24px;border:none;border-radius:8px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.25);";
+      lines.forEach((line, i) => {
+        const p = document.createElement("p");
+        p.textContent = line;
+        p.style.cssText = i === 0 ? "font-weight:700;margin:0 0 12px 0;" : "margin:0 0 8px 0;";
+        dialog.appendChild(p);
+      });
+      const ok = document.createElement("button");
+      ok.type = "button";
+      ok.className = "button";
+      ok.textContent = "OK";
+      ok.style.marginTop = "12px";
+      ok.addEventListener("click", () => dialog.close());
+      dialog.appendChild(ok);
+      dialog.addEventListener("close", () => dialog.remove());
+      document.body.appendChild(dialog);
+      dialog.showModal();
+    }
+
     // Scorer form submit
     document.querySelector("#scorer-form").addEventListener("submit", async event => {
       event.preventDefault();
 
       if (!managerUnlocked || !currentUser) return;
 
-      const playerId = document.querySelector("#player").value;
-      const matchKey = document.querySelector("#match").value; // Now uses IdJogo
+      const playerSelect = document.querySelector("#player");
+      const matchSelect = document.querySelector("#match");
+      const playerId = playerSelect.value;
+      const matchKey = matchSelect.value; // IdJogo
       const goals = Number(document.querySelector("#goals").value);
 
       if (!playerId || !matchKey || !Number.isInteger(goals) || goals < 1 || goals > 20) return;
@@ -455,7 +482,7 @@
         .from("goal_entries")
         .insert({
           player_id: playerId,
-          match_key: matchKey, // Now stores IdJogo
+          match_key: matchKey,
           goals,
           created_by: currentUser.id
         });
@@ -465,6 +492,16 @@
         return;
       }
 
+      const player = roster.find(p => p.id === playerId);
+      const matchLabel = matchSelect.options[matchSelect.selectedIndex]?.textContent.trim() || "";
+      const playerLabel = player ? `#${player.shirt_number} ${player.name}` : "jogador";
+      showConfirmation([
+        "Golos registados",
+        `${goals} ${goals === 1 ? "golo" : "golos"} · ${playerLabel}`,
+        matchLabel
+      ]);
+
+      // Keep the selected player and match so the manager can add more goals without re-selecting.
       await loadGoalEntries();
       render();
       renderManagerScorers();
@@ -548,6 +585,7 @@
     initZoneSelector();
     loadZoneData();
     console.log("loadZoneData called");
+    loadZoneData();
   </script>
 
 </body></html>
